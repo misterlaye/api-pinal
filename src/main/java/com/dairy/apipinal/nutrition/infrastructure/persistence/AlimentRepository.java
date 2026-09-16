@@ -11,4 +11,6 @@ public interface AlimentRepository extends JpaRepository<Aliment, UUID> {
     boolean existsByCode(String code);
 
     Optional<Aliment> findByCode(String code);
+
+    Optional<Aliment> findByIdAndActifTrue(UUID id);
 }

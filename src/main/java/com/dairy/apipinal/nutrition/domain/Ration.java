@@ -84,13 +84,26 @@ public class Ration {
             UUID alimentId,
             BigDecimal quantite
     ) {
-        Objects.requireNonNull(alimentId, "L'aliment est obligatoire.");
+        if (statut != StatutRation.BROUILLON) {
+            throw new IllegalStateException(
+                    "Seule une ration brouillon peut être modifiée."
+            );
+        }
+
+        Objects.requireNonNull(
+                alimentId,
+                "L'aliment est obligatoire."
+        );
 
         boolean alreadyPresent = lignes.stream()
-                .anyMatch(ligne -> ligne.getAlimentId().equals(alimentId));
+                .anyMatch(
+                        ligne -> ligne.getAlimentId().equals(alimentId)
+                );
 
         if (alreadyPresent) {
-            throw new IllegalArgumentException("Un aliment ne peut apparaître qu'une seule fois dans une ration.");
+            throw new IllegalArgumentException(
+                    "Un aliment ne peut apparaître qu'une seule fois dans une ration."
+            );
         }
 
         lignes.add(new LigneRation(this, alimentId, quantite));

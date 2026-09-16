@@ -7,6 +7,7 @@ import com.dairy.apipinal.nutrition.application.RationService;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.domain.StatutRation;
+import com.dairy.apipinal.nutrition.infrastructure.persistence.AlimentRepository;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,9 @@ class RationServiceTest {
     private RationRepository rationRepository;
 
     @Mock
+    private AlimentRepository alimentRepository;
+
+    @Mock
     private AnimalQueries animalQueries;
 
     @Mock
@@ -46,6 +50,7 @@ class RationServiceTest {
     void setUp() {
         rationService = new RationService(
                 rationRepository,
+                alimentRepository,
                 animalQueries,
                 tenantContext
         );

@@ -218,4 +218,27 @@ class RationTest {
                         "La date de fin ne peut pas être antérieure au début."
                 );
     }
+
+    @Test
+    void shouldRejectAddingLineToActiveRation() {
+        Ration ration = createRation();
+
+        ration.ajouterLigne(
+                UUID.randomUUID(),
+                new BigDecimal("5")
+        );
+
+        ration.activer();
+
+        assertThatThrownBy(() ->
+                ration.ajouterLigne(
+                        UUID.randomUUID(),
+                        new BigDecimal("2")
+                )
+        )
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Seule une ration brouillon peut être modifiée."
+                );
+    }
 }
