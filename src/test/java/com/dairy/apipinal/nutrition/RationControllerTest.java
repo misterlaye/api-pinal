@@ -1,9 +1,9 @@
 package com.dairy.apipinal.nutrition;
 
 import com.dairy.apipinal.nutrition.application.RationService;
+import com.dairy.apipinal.nutrition.application.TerminateRation;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
-import com.dairy.apipinal.nutrition.domain.StatutRation;
 import com.dairy.apipinal.nutrition.infrastructure.web.RationController;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -169,6 +169,80 @@ class RationControllerTest {
                 .andExpect(
                         jsonPath("$.animalId")
                                 .value(animalId.toString())
+                );
+    }
+
+    @Test
+    void shouldTerminateRation() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 1, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentId,
+                new java.math.BigDecimal("5")
+        );
+
+        ration.activer();
+
+        LocalDate dateFin = LocalDate.of(2026, 1, 31);
+
+        ration.terminer(dateFin);
+
+        when(rationService.terminate(any(TerminateRation.class)))
+                .thenReturn(ration);
+
+        String requestBody = """
+            {
+              "dateFin": "2026-01-31"
+            }
+            """;
+
+        mockMvc.perform(
+                        post(
+                                "/api/v1/animals/{animalId}/rations/{rationId}/terminate",
+                                animalId,
+                                rationId
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.animalId")
+                                .value(animalId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.tenantId")
+                                .value(tenantId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.dateDebut")
+                                .value("2026-01-01")
+                )
+                .andExpect(
+                        jsonPath("$.dateFin")
+                                .value("2026-01-31")
+                )
+                .andExpect(
+                        jsonPath("$.statut")
+                                .value("TERMINEE")
+                )
+                .andExpect(
+                        jsonPath("$.origine")
+                                .value("ACTUELLE")
                 );
     }
 }

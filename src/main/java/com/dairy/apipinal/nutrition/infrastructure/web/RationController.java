@@ -3,6 +3,7 @@ package com.dairy.apipinal.nutrition.infrastructure.web;
 import com.dairy.apipinal.nutrition.application.AddRationLine;
 import com.dairy.apipinal.nutrition.application.CreateRation;
 import com.dairy.apipinal.nutrition.application.RationService;
+import com.dairy.apipinal.nutrition.application.TerminateRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -68,5 +69,24 @@ public class RationController {
         Ration ration = rationService.activate(animalId, rationId);
 
         return ResponseEntity.ok(RationResponse.from(ration));
+    }
+
+    @PostMapping("/{rationId}/terminate")
+    public ResponseEntity<RationResponse> terminate(
+            @PathVariable UUID animalId,
+            @PathVariable UUID rationId,
+            @Valid @RequestBody TerminateRationRequest request
+    ) {
+        Ration ration = rationService.terminate(
+                new TerminateRation(
+                        animalId,
+                        rationId,
+                        request.dateFin()
+                )
+        );
+
+        return ResponseEntity.ok(
+                RationResponse.from(ration)
+        );
     }
 }
