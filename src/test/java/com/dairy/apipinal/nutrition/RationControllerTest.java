@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -244,5 +245,94 @@ class RationControllerTest {
                         jsonPath("$.origine")
                                 .value("ACTUELLE")
                 );
+    }
+
+    @Test
+    void shouldGetRation() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentId,
+                new java.math.BigDecimal("5")
+        );
+
+        when(rationService.getRation(
+                new com.dairy.apipinal.nutrition.application.GetRation(rationId)
+        )).thenReturn(ration);
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations/{rationId}",
+                                animalId,
+                                rationId
+                        )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.tenantId")
+                                .value(tenantId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.animalId")
+                                .value(animalId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.dateDebut")
+                                .value("2026-09-01")
+                )
+                .andExpect(
+                        jsonPath("$.statut")
+                                .value("BROUILLON")
+                )
+                .andExpect(
+                        jsonPath("$.origine")
+                                .value("ACTUELLE")
+                )
+                .andExpect(
+                        jsonPath("$.lignes.length()")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void shouldRejectRationFromAnotherAnimal() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+        UUID requestedAnimalId = UUID.randomUUID();
+        UUID rationAnimalId = UUID.randomUUID();
+
+        Ration ration = new Ration(
+                tenantId,
+                rationAnimalId,
+                LocalDate.of(2026, 9, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        when(rationService.getRation(
+                new com.dairy.apipinal.nutrition.application.GetRation(rationId)
+        )).thenReturn(ration);
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations/{rationId}",
+                                requestedAnimalId,
+                                rationId
+                        )
+                )
+                .andExpect(status().isBadRequest());
     }
 }

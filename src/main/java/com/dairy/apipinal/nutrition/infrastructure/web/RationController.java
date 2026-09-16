@@ -1,9 +1,6 @@
 package com.dairy.apipinal.nutrition.infrastructure.web;
 
-import com.dairy.apipinal.nutrition.application.AddRationLine;
-import com.dairy.apipinal.nutrition.application.CreateRation;
-import com.dairy.apipinal.nutrition.application.RationService;
-import com.dairy.apipinal.nutrition.application.TerminateRation;
+import com.dairy.apipinal.nutrition.application.*;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -84,6 +81,26 @@ public class RationController {
                         request.dateFin()
                 )
         );
+
+        return ResponseEntity.ok(
+                RationResponse.from(ration)
+        );
+    }
+
+    @GetMapping("/{rationId}")
+    public ResponseEntity<RationResponse> getRation(
+            @PathVariable UUID animalId,
+            @PathVariable UUID rationId
+    ) {
+        Ration ration = rationService.getRation(
+                new GetRation(rationId)
+        );
+
+        if (!ration.getAnimalId().equals(animalId)) {
+            throw new IllegalArgumentException(
+                    "La ration n'appartient pas à l'animal indiqué."
+            );
+        }
 
         return ResponseEntity.ok(
                 RationResponse.from(ration)
