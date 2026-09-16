@@ -170,4 +170,13 @@ public class RationService {
 
         return rationRepository.save(ration);
     }
+
+    @Transactional(readOnly = true)
+    public Ration getRation(GetRation query) {
+        UUID tenantId = tenantContext.currentTenantId();
+
+        return rationRepository
+                .findByIdAndTenantId(query.rationId(), tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Ration introuvable."));
+    }
 }

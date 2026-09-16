@@ -3,6 +3,7 @@ package com.dairy.apipinal.nutrition;
 import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.animal.api.AnimalReference;
 import com.dairy.apipinal.nutrition.application.CreateRation;
+import com.dairy.apipinal.nutrition.application.GetRation;
 import com.dairy.apipinal.nutrition.application.RationService;
 import com.dairy.apipinal.nutrition.application.TerminateRation;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
@@ -413,5 +414,79 @@ class RationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(rationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldGetRationForCurrentTenant() {
+        UUID tenantId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.of(ration));
+
+        Ration result = rationService.getRation(
+                new GetRation(rationId)
+        );
+
+        assertThat(result)
+                .isSameAs(ration);
+    }
+
+    @Test
+    void shouldNotReturnRationFromAnotherTenant() {
+        UUID currentTenantId = UUID.randomUUID();
+        UUID otherTenantId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(currentTenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                currentTenantId
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                rationService.getRation(
+                        new GetRation(rationId)
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Ration introuvable.");
+    }
+
+    @Test
+    void shouldRefuseWhenRationDoesNotExist() {
+        UUID tenantId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                rationService.getRation(
+                        new GetRation(rationId)
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Ration introuvable.");
     }
 }
