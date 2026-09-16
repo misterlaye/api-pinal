@@ -129,4 +129,46 @@ class RationControllerTest {
                 )
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldActivateRation() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 16),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                UUID.randomUUID(),
+                new java.math.BigDecimal("5")
+        );
+
+        ration.activer();
+
+        when(rationService.activate(
+                animalId,
+                rationId
+        )).thenReturn(ration);
+
+        mockMvc.perform(
+                        post(
+                                "/api/v1/animals/{animalId}/rations/{rationId}/activate",
+                                animalId,
+                                rationId
+                        )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.statut")
+                                .value("ACTIVE")
+                )
+                .andExpect(
+                        jsonPath("$.animalId")
+                                .value(animalId.toString())
+                );
+    }
 }

@@ -2,6 +2,8 @@ package com.dairy.apipinal.nutrition.application;
 
 import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.nutrition.domain.Ration;
+import com.dairy.apipinal.nutrition.domain.RationAlreadyActiveException;
+import com.dairy.apipinal.nutrition.domain.StatutRation;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.AlimentRepository;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
@@ -82,6 +84,68 @@ public class RationService {
                 command.alimentId(),
                 command.quantite()
         );
+
+        return rationRepository.save(ration);
+    }
+
+    @Transactional
+    public Ration activate(
+            UUID animalId,
+            UUID rationId
+    ) {
+        UUID tenantId = tenantContext.currentTenantId();
+
+        Ration ration = rationRepository
+                .findByIdAndTenantId(
+                        rationId,
+                        tenantId
+                )
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Ration introuvable : " + rationId
+                        )
+                );
+
+        if (!ration.getAnimalId().equals(animalId)) {
+            throw new IllegalArgumentException(
+                    "La ration n'appartient pas à l'animal indiqué."
+            );
+        }
+
+        if (ration.getStatut() != StatutRation.BROUILLON) {
+            throw new IllegalStateException(
+                    "Seule une ration brouillon peut être activée."
+            );
+        }
+
+        boolean overlapping;
+
+        if (ration.getDateFin() == null) {
+            overlapping =
+                    rationRepository
+                            .existsOverlappingActiveRationWithoutEndDate(
+                                    tenantId,
+                                    ration.getAnimalId(),
+                                    ration.getDateDebut(),
+                                    StatutRation.ACTIVE
+                            );
+        } else {
+            overlapping =
+                    rationRepository
+                            .existsOverlappingActiveRationWithEndDate(
+                                    tenantId,
+                                    ration.getAnimalId(),
+                                    ration.getDateDebut(),
+                                    ration.getDateFin(),
+                                    StatutRation.ACTIVE
+                            );
+        }
+
+        if (overlapping) {
+            throw new RationAlreadyActiveException();
+        }
+
+        ration.activer();
 
         return rationRepository.save(ration);
     }

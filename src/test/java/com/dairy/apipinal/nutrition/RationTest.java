@@ -241,4 +241,26 @@ class RationTest {
                         "Seule une ration brouillon peut être modifiée."
                 );
     }
+
+    @Test
+    void shouldRejectActivationOfTerminatedRation() {
+        Ration ration = createRation();
+
+        ration.ajouterLigne(
+                UUID.randomUUID(),
+                new BigDecimal("5")
+        );
+
+        ration.activer();
+
+        ration.terminer(
+                LocalDate.of(2026, 9, 15)
+        );
+
+        assertThatThrownBy(ration::activer)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Seule une ration brouillon peut être activée."
+                );
+    }
 }

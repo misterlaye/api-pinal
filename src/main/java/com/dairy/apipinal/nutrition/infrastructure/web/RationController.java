@@ -56,8 +56,17 @@ public class RationController {
 
         Ration ration = rationService.addLine(command);
 
-        return ResponseEntity.ok(
-                RationResponse.from(ration)
-        );
+        return ResponseEntity.ok(RationResponse.from(ration));
+    }
+
+    @PostMapping("/{rationId}/activate")
+    public ResponseEntity<RationResponse> activate(
+            @PathVariable UUID animalId,
+            @PathVariable UUID rationId
+    ) {
+
+        Ration ration = rationService.activate(animalId, rationId);
+
+        return ResponseEntity.ok(RationResponse.from(ration));
     }
 }
