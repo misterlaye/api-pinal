@@ -4,6 +4,7 @@ import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.animal.api.AnimalReference;
 import com.dairy.apipinal.nutrition.application.CreateRation;
 import com.dairy.apipinal.nutrition.application.RationService;
+import com.dairy.apipinal.nutrition.application.TerminateRation;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.domain.RationAlreadyActiveException;
@@ -25,8 +26,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RationServiceTest {
@@ -235,5 +235,183 @@ class RationServiceTest {
                 .hasMessage(
                         "La ration n'appartient pas à l'animal indiqué."
                 );
+    }
+
+    @Test
+    void shouldTerminateActiveRation() {
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        LocalDate dateDebut = LocalDate.of(2026, 1, 1);
+        LocalDate dateFin = LocalDate.of(2026, 1, 31);
+
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                dateDebut,
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                UUID.randomUUID(),
+                new BigDecimal("5.0000")
+        );
+
+        ration.activer();
+
+        // Le repository peut retourner la ration sans dépendre de son UUID généré.
+        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+                .thenReturn(Optional.of(ration));
+
+        when(rationRepository.save(ration))
+                .thenReturn(ration);
+
+        Ration result = rationService.terminate(
+                new TerminateRation(
+                        animalId,
+                        rationId,
+                        dateFin
+                )
+        );
+
+        assertThat(result.getStatut())
+                .isEqualTo(StatutRation.TERMINEE);
+
+        assertThat(result.getDateFin())
+                .isEqualTo(dateFin);
+
+        verify(rationRepository).save(ration);
+    }
+
+    @Test
+    void shouldRefuseTerminationWhenRationIsNotActive() {
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 1, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+                .thenReturn(Optional.of(ration));
+
+        assertThatThrownBy(() ->
+                rationService.terminate(
+                        new TerminateRation(
+                                animalId,
+                                rationId,
+                                LocalDate.of(2026, 1, 31)
+                        )
+                )
+        )
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(rationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRefuseTerminationWhenEndDateIsBeforeStartDate() {
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 2, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                UUID.randomUUID(),
+                new BigDecimal("5.0000")
+        );
+
+        ration.activer();
+
+        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+                .thenReturn(Optional.of(ration));
+
+        assertThatThrownBy(() ->
+                rationService.terminate(
+                        new TerminateRation(
+                                animalId,
+                                rationId,
+                                LocalDate.of(2026, 1, 31)
+                        )
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(rationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRefuseTerminationWhenAnimalIdDoesNotMatch() {
+        UUID tenantId = UUID.randomUUID();
+        UUID rationAnimalId = UUID.randomUUID();
+        UUID requestedAnimalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+
+        Ration ration = new Ration(
+                tenantId,
+                rationAnimalId,
+                LocalDate.of(2026, 1, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+                .thenReturn(Optional.of(ration));
+
+        assertThatThrownBy(() ->
+                rationService.terminate(
+                        new TerminateRation(
+                                requestedAnimalId,
+                                rationId,
+                                LocalDate.of(2026, 1, 31)
+                        )
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(rationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRefuseTerminationWhenRationDoesNotExist() {
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                rationService.terminate(
+                        new TerminateRation(
+                                animalId,
+                                rationId,
+                                LocalDate.of(2026, 1, 31)
+                        )
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(rationRepository, never()).save(any());
     }
 }

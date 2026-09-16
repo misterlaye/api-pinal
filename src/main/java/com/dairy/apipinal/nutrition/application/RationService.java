@@ -149,4 +149,25 @@ public class RationService {
 
         return rationRepository.save(ration);
     }
+
+    @Transactional
+    public Ration terminate(TerminateRation command) {
+        UUID tenantId = tenantContext.currentTenantId();
+
+        Ration ration = rationRepository
+                .findByIdAndTenantId(command.rationId(), tenantId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Ration introuvable."
+                ));
+
+        if (!ration.getAnimalId().equals(command.animalId())) {
+            throw new IllegalArgumentException(
+                    "La ration n'appartient pas à l'animal indiqué."
+            );
+        }
+
+        ration.terminer(command.dateFin());
+
+        return rationRepository.save(ration);
+    }
 }
