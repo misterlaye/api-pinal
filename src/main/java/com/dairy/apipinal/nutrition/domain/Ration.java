@@ -29,6 +29,9 @@ public class Ration {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
     @Column(name = "animal_id", nullable = false)
     private UUID animalId;
 
@@ -61,24 +64,18 @@ public class Ration {
     }
 
     public Ration(
+            UUID tenantId,
             UUID animalId,
             LocalDate dateDebut,
             OrigineRation origine
     ) {
-        this.animalId = Objects.requireNonNull(
-                animalId,
-                "L'animal est obligatoire."
-        );
+        this.tenantId = Objects.requireNonNull(tenantId, "Le tenant est obligatoire.");
 
-        this.dateDebut = Objects.requireNonNull(
-                dateDebut,
-                "La date de début est obligatoire."
-        );
+        this.animalId = Objects.requireNonNull(animalId, "L'animal est obligatoire.");
 
-        this.origine = Objects.requireNonNull(
-                origine,
-                "L'origine est obligatoire."
-        );
+        this.dateDebut = Objects.requireNonNull(dateDebut, "La date de début est obligatoire.");
+
+        this.origine = Objects.requireNonNull(origine,"L'origine est obligatoire.");
 
         this.statut = StatutRation.BROUILLON;
     }
@@ -100,15 +97,15 @@ public class Ration {
     }
 
     public void activer() {
-        if (lignes.isEmpty()) {
+        if (statut != StatutRation.BROUILLON) {
             throw new IllegalStateException(
-                    "Une ration doit contenir au moins une ligne avant activation."
+                    "Seule une ration brouillon peut être activée."
             );
         }
 
-        if (statut == StatutRation.TERMINEE) {
+        if (lignes.isEmpty()) {
             throw new IllegalStateException(
-                    "Une ration terminée ne peut pas être réactivée."
+                    "Une ration doit contenir au moins une ligne avant activation."
             );
         }
 
@@ -135,6 +132,10 @@ public class Ration {
 
         this.dateFin = dateFin;
         this.statut = StatutRation.TERMINEE;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
     }
 
     public UUID getId() {
