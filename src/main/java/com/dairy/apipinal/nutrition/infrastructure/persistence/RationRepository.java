@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -99,6 +100,23 @@ public interface RationRepository
     Optional<Ration> findActiveRationAtDate(
             @Param("tenantId") UUID tenantId,
             @Param("animalId") UUID animalId,
+            @Param("date") LocalDate date,
+            @Param("statut") StatutRation statut
+    );
+
+    @Query("""
+    select r
+    from Ration r
+    where r.tenantId = :tenantId
+      and r.statut = :statut
+      and r.dateDebut <= :date
+      and (
+            r.dateFin is null
+            or r.dateFin >= :date
+          )
+    """)
+    List<Ration> findAllActiveRationsAtDate(
+            @Param("tenantId") UUID tenantId,
             @Param("date") LocalDate date,
             @Param("statut") StatutRation statut
     );

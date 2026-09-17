@@ -1,9 +1,6 @@
 package com.dairy.apipinal.nutrition.application;
 
-import com.dairy.apipinal.nutrition.api.FeedCostReference;
-import com.dairy.apipinal.nutrition.api.NutritionQueries;
-import com.dairy.apipinal.nutrition.api.RationCostReference;
-import com.dairy.apipinal.nutrition.api.RationReference;
+import com.dairy.apipinal.nutrition.api.*;
 import com.dairy.apipinal.nutrition.application.CalculateRationCost;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.domain.StatutRation;
@@ -183,5 +180,54 @@ public class NutritionQueriesImpl implements NutritionQueries {
                     "La date de début doit être antérieure à la date de fin."
             );
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ExploitationFeedCostReference> calculateTotalFeedCost(
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        validatePeriod(dateDebut, dateFinExclusive);
+
+        UUID tenantId = tenantContext.currentTenantId();
+
+        BigDecimal coutTotal = BigDecimal.ZERO;
+
+        LocalDate date = dateDebut;
+
+        while (date.isBefore(dateFinExclusive)) {
+
+            var rations = rationRepository.findAllActiveRationsAtDate(
+                    tenantId,
+                    date,
+                    StatutRation.ACTIVE
+            );
+
+            for (Ration ration : rations) {
+
+                var result = rationService.calculateCost(
+                        new CalculateRationCost(
+                                ration.getAnimalId(),
+                                ration.getId(),
+                                date
+                        )
+                );
+
+                coutTotal = coutTotal.add(
+                        result.coutTotal()
+                );
+            }
+
+            date = date.plusDays(1);
+        }
+
+        return Optional.of(
+                new ExploitationFeedCostReference(
+                        dateDebut,
+                        dateFinExclusive,
+                        coutTotal
+                )
+        );
     }
 }

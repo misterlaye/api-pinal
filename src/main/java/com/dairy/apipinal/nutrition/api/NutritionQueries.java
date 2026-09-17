@@ -25,4 +25,9 @@ public interface NutritionQueries {
             LocalDate dateDebut,
             LocalDate dateFinExclusive
     );
+
+    Optional<ExploitationFeedCostReference> calculateTotalFeedCost(
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    );
 }
