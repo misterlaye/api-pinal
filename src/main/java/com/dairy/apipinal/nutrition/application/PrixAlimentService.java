@@ -7,6 +7,8 @@ import com.dairy.apipinal.nutrition.infrastructure.persistence.PrixAlimentReposi
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class PrixAlimentService {
 
@@ -67,5 +69,20 @@ public class PrixAlimentService {
         );
 
         return prixAlimentRepository.save(prixAliment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PrixAliment> getHistory(
+            GetPrixAlimentHistory query
+    ) {
+        alimentRepository.findById(query.alimentId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Aliment introuvable."
+                ));
+
+        return prixAlimentRepository
+                .findAllByAlimentIdOrderByDateDebutDesc(
+                        query.alimentId()
+                );
     }
 }

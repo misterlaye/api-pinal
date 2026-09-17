@@ -1,5 +1,6 @@
 package com.dairy.apipinal.nutrition;
 
+import com.dairy.apipinal.nutrition.application.GetPrixAlimentHistory;
 import com.dairy.apipinal.nutrition.application.PrixAlimentService;
 import com.dairy.apipinal.nutrition.application.CreatePrixAliment;
 import com.dairy.apipinal.nutrition.domain.Aliment;
@@ -14,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -327,5 +329,64 @@ class PrixAlimentServiceTest {
 
         verify(prixAlimentRepository, never())
                 .save(any(PrixAliment.class));
+    }
+
+    @Test
+    void shouldGetPrixAlimentHistory() {
+
+        UUID alimentId = UUID.randomUUID();
+
+        Aliment aliment = mock(Aliment.class);
+
+        PrixAliment prixSeptembre = mock(PrixAliment.class);
+        PrixAliment prixOctobre = mock(PrixAliment.class);
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.of(aliment));
+
+        when(prixAlimentRepository
+                .findAllByAlimentIdOrderByDateDebutDesc(alimentId))
+                .thenReturn(List.of(
+                        prixOctobre,
+                        prixSeptembre
+                ));
+
+        List<PrixAliment> result =
+                prixAlimentService.getHistory(
+                        new GetPrixAlimentHistory(alimentId)
+                );
+
+        assertThat(result)
+                .containsExactly(
+                        prixOctobre,
+                        prixSeptembre
+                );
+
+        verify(alimentRepository)
+                .findById(alimentId);
+
+        verify(prixAlimentRepository)
+                .findAllByAlimentIdOrderByDateDebutDesc(alimentId);
+    }
+
+    @Test
+    void shouldReturnEmptyHistoryWhenAlimentHasNoPrices() {
+
+        UUID alimentId = UUID.randomUUID();
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.of(mock(Aliment.class)));
+
+        when(prixAlimentRepository
+                .findAllByAlimentIdOrderByDateDebutDesc(alimentId))
+                .thenReturn(List.of());
+
+        List<PrixAliment> result =
+                prixAlimentService.getHistory(
+                        new GetPrixAlimentHistory(alimentId)
+                );
+
+        assertThat(result)
+                .isEmpty();
     }
 }

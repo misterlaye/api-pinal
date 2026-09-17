@@ -1,5 +1,6 @@
 package com.dairy.apipinal.nutrition.infrastructure.web;
 
+import com.dairy.apipinal.nutrition.application.GetPrixAlimentHistory;
 import com.dairy.apipinal.nutrition.application.PrixAlimentService;
 import com.dairy.apipinal.nutrition.application.CreatePrixAliment;
 import com.dairy.apipinal.nutrition.domain.PrixAliment;
@@ -7,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,5 +41,21 @@ public class PrixAlimentController {
         return ResponseEntity.ok(
                 PrixAlimentResponse.from(prixAliment)
         );
+    }
+
+    @GetMapping("/{alimentId}/prices")
+    public ResponseEntity<List<PrixAlimentResponse>> getHistory(
+            @PathVariable UUID alimentId
+    ) {
+        List<PrixAlimentResponse> response =
+                prixAlimentService
+                        .getHistory(
+                                new GetPrixAlimentHistory(alimentId)
+                        )
+                        .stream()
+                        .map(PrixAlimentResponse::from)
+                        .toList();
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,5 +45,9 @@ public interface PrixAlimentRepository extends JpaRepository<PrixAliment, UUID> 
     boolean existsOverlappingOpenEndedPeriod(
             UUID alimentId,
             LocalDate dateDebut
+    );
+
+    List<PrixAliment> findAllByAlimentIdOrderByDateDebutDesc(
+            UUID alimentId
     );
 }

@@ -1,5 +1,6 @@
 package com.dairy.apipinal.nutrition;
 
+import com.dairy.apipinal.nutrition.application.GetPrixAlimentHistory;
 import com.dairy.apipinal.nutrition.application.PrixAlimentService;
 import com.dairy.apipinal.nutrition.application.CreatePrixAliment;
 import com.dairy.apipinal.nutrition.domain.PrixAliment;
@@ -7,6 +8,7 @@ import com.dairy.apipinal.nutrition.infrastructure.web.PrixAlimentController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -16,11 +18,14 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -191,5 +196,80 @@ class PrixAlimentControllerTest {
                         jsonPath("$.dateFin")
                                 .doesNotExist()
                 );
+    }
+
+    @Test
+    void shouldGetPrixAlimentHistory() throws Exception {
+
+        PrixAliment prixOctobre = new PrixAliment(
+                alimentId,
+                new BigDecimal("120.00"),
+                LocalDate.of(2026, 10, 1),
+                LocalDate.of(2026, 10, 31)
+        );
+
+        PrixAliment prixSeptembre = new PrixAliment(
+                alimentId,
+                new BigDecimal("100.00"),
+                LocalDate.of(2026, 9, 1),
+                LocalDate.of(2026, 9, 30)
+        );
+
+        when(prixAlimentService.getHistory(
+                new GetPrixAlimentHistory(alimentId)
+        )).thenReturn(
+                List.of(
+                        prixOctobre,
+                        prixSeptembre
+                )
+        );
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/aliments/{alimentId}/prices",
+                                alimentId
+                        )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.length()")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$[0].alimentId")
+                                .value(alimentId.toString())
+                )
+                .andExpect(
+                        jsonPath("$[0].prixUnitaire")
+                                .value(120.0)
+                )
+                .andExpect(
+                        jsonPath("$[0].dateDebut")
+                                .value("2026-10-01")
+                )
+                .andExpect(
+                        jsonPath("$[1].prixUnitaire")
+                                .value(100.0)
+                )
+                .andExpect(
+                        jsonPath("$[1].dateDebut")
+                                .value("2026-09-01")
+                );
+
+        ArgumentCaptor<GetPrixAlimentHistory> captor =
+                ArgumentCaptor.forClass(
+                        GetPrixAlimentHistory.class
+                );
+
+        verify(prixAlimentService)
+                .getHistory(captor.capture());
+
+        assertThat(captor.getValue().alimentId())
+                .isEqualTo(alimentId);
     }
 }
