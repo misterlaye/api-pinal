@@ -21,4 +21,28 @@ public interface PrixAlimentRepository extends JpaRepository<PrixAliment, UUID> 
             UUID alimentId,
             LocalDate date
     );
+
+    @Query("""
+        select count(p) > 0
+        from PrixAliment p
+        where p.alimentId = :alimentId
+          and p.dateDebut <= :dateFin
+          and (p.dateFin is null or p.dateFin >= :dateDebut)
+        """)
+    boolean existsOverlappingPeriodWithEndDate(
+            UUID alimentId,
+            LocalDate dateDebut,
+            LocalDate dateFin
+    );
+
+    @Query("""
+        select count(p) > 0
+        from PrixAliment p
+        where p.alimentId = :alimentId
+          and (p.dateFin is null or p.dateFin >= :dateDebut)
+        """)
+    boolean existsOverlappingOpenEndedPeriod(
+            UUID alimentId,
+            LocalDate dateDebut
+    );
 }
