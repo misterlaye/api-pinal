@@ -3,11 +3,9 @@ package com.dairy.apipinal.nutrition;
 import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.animal.api.AnimalReference;
 import com.dairy.apipinal.nutrition.application.*;
-import com.dairy.apipinal.nutrition.domain.OrigineRation;
-import com.dairy.apipinal.nutrition.domain.Ration;
-import com.dairy.apipinal.nutrition.domain.RationAlreadyActiveException;
-import com.dairy.apipinal.nutrition.domain.StatutRation;
+import com.dairy.apipinal.nutrition.domain.*;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.AlimentRepository;
+import com.dairy.apipinal.nutrition.infrastructure.persistence.PrixAlimentRepository;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +36,9 @@ class RationServiceTest {
     private AlimentRepository alimentRepository;
 
     @Mock
+    private PrixAlimentRepository prixAlimentRepository;
+
+    @Mock
     private AnimalQueries animalQueries;
 
     @Mock
@@ -55,6 +56,7 @@ class RationServiceTest {
         rationService = new RationService(
                 rationRepository,
                 alimentRepository,
+                prixAlimentRepository,
                 animalQueries,
                 tenantContext
         );
@@ -573,5 +575,149 @@ class RationServiceTest {
 
         assertThat(result.getTotalElements())
                 .isZero();
+    }
+
+    @Test
+    void shouldCalculateRationCostAtGivenDate() {
+
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        UUID alimentA = UUID.randomUUID();
+        UUID alimentB = UUID.randomUUID();
+
+        LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentA,
+                new BigDecimal("5.0000")
+        );
+
+        ration.ajouterLigne(
+                alimentB,
+                new BigDecimal("2.0000")
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.of(ration));
+
+        PrixAliment prixA = mock(PrixAliment.class);
+        when(prixA.getPrixUnitaire())
+                .thenReturn(new BigDecimal("100.00"));
+
+        PrixAliment prixB = mock(PrixAliment.class);
+        when(prixB.getPrixUnitaire())
+                .thenReturn(new BigDecimal("250.00"));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentA,
+                dateCalcul
+        )).thenReturn(Optional.of(prixA));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentB,
+                dateCalcul
+        )).thenReturn(Optional.of(prixB));
+
+        RationCostResult result =
+                rationService.calculateCost(
+                        new CalculateRationCost(
+                                rationId,
+                                dateCalcul
+                        )
+                );
+
+        assertThat(result.coutTotal())
+                .isEqualByComparingTo("1000.00");
+
+        assertThat(result.lignes())
+                .hasSize(2);
+    }
+
+    @Test
+    void shouldRefuseCostCalculationWhenPriceIsUnavailable() {
+
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentId,
+                new BigDecimal("5.0000")
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.of(ration));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                dateCalcul
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                rationService.calculateCost(
+                        new CalculateRationCost(
+                                rationId,
+                                dateCalcul
+                        )
+                )
+        )
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void shouldNotCalculateCostForAnotherTenantRation() {
+
+        UUID currentTenantId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(currentTenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                currentTenantId
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                rationService.calculateCost(
+                        new CalculateRationCost(
+                                rationId,
+                                dateCalcul
+                        )
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Ration introuvable.");
     }
 }

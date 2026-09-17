@@ -1,16 +1,18 @@
 package com.dairy.apipinal.nutrition.application;
 
 import com.dairy.apipinal.animal.api.AnimalQueries;
-import com.dairy.apipinal.nutrition.domain.Ration;
-import com.dairy.apipinal.nutrition.domain.RationAlreadyActiveException;
-import com.dairy.apipinal.nutrition.domain.StatutRation;
+import com.dairy.apipinal.nutrition.domain.*;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.AlimentRepository;
+import com.dairy.apipinal.nutrition.infrastructure.persistence.PrixAlimentRepository;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -20,15 +22,18 @@ public class RationService {
     private final AlimentRepository alimentRepository;
     private final AnimalQueries animalQueries;
     private final TenantContext tenantContext;
+    private final PrixAlimentRepository prixAlimentRepository;
 
     public RationService(
             RationRepository rationRepository,
             AlimentRepository alimentRepository,
+            PrixAlimentRepository prixAlimentRepository,
             AnimalQueries animalQueries,
             TenantContext tenantContext
     ) {
         this.rationRepository = rationRepository;
         this.alimentRepository = alimentRepository;
+        this.prixAlimentRepository = prixAlimentRepository;
         this.animalQueries = animalQueries;
         this.tenantContext = tenantContext;
     }
@@ -191,6 +196,57 @@ public class RationService {
                 tenantId,
                 query.animalId(),
                 query.pageable()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public RationCostResult calculateCost(CalculateRationCost query) {
+        UUID tenantId = tenantContext.currentTenantId();
+
+        Ration ration = rationRepository
+                .findByIdAndTenantId(query.rationId(), tenantId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Ration introuvable."
+                ));
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        List<RationCostLine> costLines = new ArrayList<>();
+
+        for (LigneRation ligne : ration.getLignes()) {
+
+            PrixAliment prix = prixAlimentRepository
+                    .findApplicablePrice(
+                            ligne.getAlimentId(),
+                            query.dateCalcul()
+                    )
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Aucun prix applicable pour l'aliment "
+                                    + ligne.getAlimentId()
+                                    + " à la date "
+                                    + query.dateCalcul()
+                    ));
+
+            BigDecimal cout = ligne.getQuantite()
+                    .multiply(prix.getPrixUnitaire());
+
+            costLines.add(
+                    new RationCostLine(
+                            ligne.getAlimentId(),
+                            ligne.getQuantite(),
+                            prix.getPrixUnitaire(),
+                            cout
+                    )
+            );
+
+            total = total.add(cout);
+        }
+
+        return new RationCostResult(
+                ration.getId(),
+                query.dateCalcul(),
+                costLines,
+                total
         );
     }
 }
