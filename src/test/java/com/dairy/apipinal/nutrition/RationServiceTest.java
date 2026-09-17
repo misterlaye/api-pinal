@@ -765,4 +765,168 @@ class RationServiceTest {
         verify(prixAlimentRepository, never())
                 .findApplicablePrice(any(), any());
     }
+
+    @Test
+    void shouldUsePriceApplicableAtCalculationDate() {
+
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        LocalDate dateJanvier = LocalDate.of(2026, 1, 15);
+        LocalDate dateFevrier = LocalDate.of(2026, 2, 15);
+        LocalDate dateMars = LocalDate.of(2026, 3, 15);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 1, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentId,
+                new BigDecimal("5.0000")
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.of(ration));
+
+        PrixAliment prixJanvier = mock(PrixAliment.class);
+        when(prixJanvier.getPrixUnitaire())
+                .thenReturn(new BigDecimal("100.00"));
+
+        PrixAliment prixFevrier = mock(PrixAliment.class);
+        when(prixFevrier.getPrixUnitaire())
+                .thenReturn(new BigDecimal("120.00"));
+
+        PrixAliment prixMars = mock(PrixAliment.class);
+        when(prixMars.getPrixUnitaire())
+                .thenReturn(new BigDecimal("150.00"));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                dateJanvier
+        )).thenReturn(Optional.of(prixJanvier));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                dateFevrier
+        )).thenReturn(Optional.of(prixFevrier));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                dateMars
+        )).thenReturn(Optional.of(prixMars));
+
+        RationCostResult janvier = rationService.calculateCost(
+                new CalculateRationCost(
+                        animalId,
+                        rationId,
+                        dateJanvier
+                )
+        );
+
+        RationCostResult fevrier = rationService.calculateCost(
+                new CalculateRationCost(
+                        animalId,
+                        rationId,
+                        dateFevrier
+                )
+        );
+
+        RationCostResult mars = rationService.calculateCost(
+                new CalculateRationCost(
+                        animalId,
+                        rationId,
+                        dateMars
+                )
+        );
+
+        assertThat(janvier.coutTotal())
+                .isEqualByComparingTo("500.00");
+
+        assertThat(fevrier.coutTotal())
+                .isEqualByComparingTo("600.00");
+
+        assertThat(mars.coutTotal())
+                .isEqualByComparingTo("750.00");
+
+        assertThat(janvier.lignes().getFirst().prixUnitaire())
+                .isEqualByComparingTo("100.00");
+
+        assertThat(fevrier.lignes().getFirst().prixUnitaire())
+                .isEqualByComparingTo("120.00");
+
+        assertThat(mars.lignes().getFirst().prixUnitaire())
+                .isEqualByComparingTo("150.00");
+
+        verify(prixAlimentRepository)
+                .findApplicablePrice(alimentId, dateJanvier);
+
+        verify(prixAlimentRepository)
+                .findApplicablePrice(alimentId, dateFevrier);
+
+        verify(prixAlimentRepository)
+                .findApplicablePrice(alimentId, dateMars);
+    }
+
+    @Test
+    void shouldRefuseCostCalculationWhenNoPriceIsApplicableAtRequestedDate() {
+
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        LocalDate dateCalcul = LocalDate.of(2025, 12, 15);
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 1, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentId,
+                new BigDecimal("5.0000")
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.of(ration));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                dateCalcul
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                rationService.calculateCost(
+                        new CalculateRationCost(
+                                animalId,
+                                rationId,
+                                dateCalcul
+                        )
+                )
+        )
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(
+                        "Aucun prix applicable pour l'aliment"
+                );
+
+        verify(prixAlimentRepository)
+                .findApplicablePrice(alimentId, dateCalcul);
+    }
 }
