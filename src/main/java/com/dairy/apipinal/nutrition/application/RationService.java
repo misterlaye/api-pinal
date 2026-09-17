@@ -7,6 +7,7 @@ import com.dairy.apipinal.nutrition.domain.StatutRation;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.AlimentRepository;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -178,5 +179,18 @@ public class RationService {
         return rationRepository
                 .findByIdAndTenantId(query.rationId(), tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Ration introuvable."));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ration> getRationsByAnimal(GetRationsByAnimal query) {
+        UUID tenantId = tenantContext.currentTenantId();
+
+        animalQueries.getReference(query.animalId());
+
+        return rationRepository.findByTenantIdAndAnimalId(
+                tenantId,
+                query.animalId(),
+                query.pageable()
+        );
     }
 }

@@ -2,6 +2,8 @@ package com.dairy.apipinal.nutrition.infrastructure.persistence;
 
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.domain.StatutRation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +18,12 @@ public interface RationRepository
     Optional<Ration> findByIdAndTenantId(
             UUID id,
             UUID tenantId
+    );
+
+    Page<Ration> findByTenantIdAndAnimalId(
+            UUID tenantId,
+            UUID animalId,
+            Pageable pageable
     );
 
     boolean existsByIdAndTenantId(

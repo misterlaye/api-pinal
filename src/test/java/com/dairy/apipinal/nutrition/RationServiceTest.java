@@ -2,10 +2,7 @@ package com.dairy.apipinal.nutrition;
 
 import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.animal.api.AnimalReference;
-import com.dairy.apipinal.nutrition.application.CreateRation;
-import com.dairy.apipinal.nutrition.application.GetRation;
-import com.dairy.apipinal.nutrition.application.RationService;
-import com.dairy.apipinal.nutrition.application.TerminateRation;
+import com.dairy.apipinal.nutrition.application.*;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.domain.RationAlreadyActiveException;
@@ -18,9 +15,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -488,5 +487,91 @@ class RationServiceTest {
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Ration introuvable.");
+    }
+
+    @Test
+    void shouldGetRationsByAnimalForCurrentTenant() {
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+
+        Pageable pageable = PageRequest.of(
+                0,
+                20,
+                Sort.by(Sort.Direction.DESC, "dateDebut")
+        );
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 16),
+                OrigineRation.ACTUELLE
+        );
+
+        Page<Ration> expected = new PageImpl<>(
+                List.of(ration),
+                pageable,
+                1
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(animalQueries.getReference(animalId))
+                .thenReturn(mock(
+                        com.dairy.apipinal.animal.api.AnimalReference.class
+                ));
+
+        when(rationRepository.findByTenantIdAndAnimalId(
+                tenantId,
+                animalId,
+                pageable
+        )).thenReturn(expected);
+
+        Page<Ration> result = rationService.getRationsByAnimal(
+                new GetRationsByAnimal(
+                        animalId,
+                        pageable
+                )
+        );
+
+        assertThat(result)
+                .isSameAs(expected);
+    }
+
+    @Test
+    void shouldReturnEmptyPageWhenAnimalHasNoRations() {
+        UUID tenantId = UUID.randomUUID();
+        UUID animalId = UUID.randomUUID();
+
+        Pageable pageable = PageRequest.of(0, 20);
+
+        Page<Ration> expected = Page.empty(pageable);
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(animalQueries.getReference(animalId))
+                .thenReturn(mock(
+                        com.dairy.apipinal.animal.api.AnimalReference.class
+                ));
+
+        when(rationRepository.findByTenantIdAndAnimalId(
+                tenantId,
+                animalId,
+                pageable
+        )).thenReturn(expected);
+
+        Page<Ration> result = rationService.getRationsByAnimal(
+                new GetRationsByAnimal(
+                        animalId,
+                        pageable
+                )
+        );
+
+        assertThat(result.getContent())
+                .isEmpty();
+
+        assertThat(result.getTotalElements())
+                .isZero();
     }
 }

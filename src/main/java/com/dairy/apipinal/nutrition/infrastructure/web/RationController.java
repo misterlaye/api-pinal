@@ -3,6 +3,10 @@ package com.dairy.apipinal.nutrition.infrastructure.web;
 import com.dairy.apipinal.nutrition.application.*;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -104,6 +108,42 @@ public class RationController {
 
         return ResponseEntity.ok(
                 RationResponse.from(ration)
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<RationsPageResponse> getRations(
+            @PathVariable UUID animalId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        if (page < 0) {
+            throw new IllegalArgumentException(
+                    "Le numéro de page ne peut pas être négatif."
+            );
+        }
+
+        if (size < 1 || size > 100) {
+            throw new IllegalArgumentException(
+                    "La taille de page doit être comprise entre 1 et 100."
+            );
+        }
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "dateDebut")
+        );
+
+        Page<Ration> rations = rationService.getRationsByAnimal(
+                new GetRationsByAnimal(
+                        animalId,
+                        pageable
+                )
+        );
+
+        return ResponseEntity.ok(
+                RationsPageResponse.from(rations)
         );
     }
 }

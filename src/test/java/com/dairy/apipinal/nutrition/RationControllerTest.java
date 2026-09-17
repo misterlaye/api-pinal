@@ -1,24 +1,32 @@
 package com.dairy.apipinal.nutrition;
 
+import com.dairy.apipinal.nutrition.application.GetRationsByAnimal;
 import com.dairy.apipinal.nutrition.application.RationService;
 import com.dairy.apipinal.nutrition.application.TerminateRation;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.infrastructure.web.RationController;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -332,6 +340,218 @@ class RationControllerTest {
                                 requestedAnimalId,
                                 rationId
                         )
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldGetRationsByAnimal() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        Ration ration = new Ration(
+                tenantId,
+                animalId,
+                LocalDate.of(2026, 9, 16),
+                OrigineRation.ACTUELLE
+        );
+
+        ration.ajouterLigne(
+                alimentId,
+                new java.math.BigDecimal("5")
+        );
+
+        var pageable = PageRequest.of(
+                0,
+                20,
+                Sort.by(Sort.Direction.DESC, "dateDebut")
+        );
+
+        var page = new PageImpl<>(
+                List.of(ration),
+                pageable,
+                1
+        );
+
+        when(rationService.getRationsByAnimal(
+                any(GetRationsByAnimal.class)
+        )).thenReturn(page);
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations",
+                                animalId
+                        )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].tenantId")
+                                .value(tenantId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.content[0].animalId")
+                                .value(animalId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.content[0].dateDebut")
+                                .value("2026-09-16")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].statut")
+                                .value("BROUILLON")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].origine")
+                                .value("ACTUELLE")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].lignes.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.page")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.size")
+                                .value(20)
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.totalPages")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.first")
+                                .value(true)
+                )
+                .andExpect(
+                        jsonPath("$.last")
+                                .value(true)
+                );
+
+        verify(rationService).getRationsByAnimal(
+                any(GetRationsByAnimal.class)
+        );
+    }
+
+    @Test
+    void shouldGetRationsWithPaginationParameters() throws Exception {
+
+        var pageable = PageRequest.of(
+                1,
+                10,
+                Sort.by(Sort.Direction.DESC, "dateDebut")
+        );
+
+        var page = new PageImpl<Ration>(
+                List.of(),
+                pageable,
+                15
+        );
+
+        when(rationService.getRationsByAnimal(
+                any(GetRationsByAnimal.class)
+        )).thenReturn(page);
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations",
+                                animalId
+                        )
+                                .param("page", "1")
+                                .param("size", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.page")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.size")
+                                .value(10)
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(15)
+                )
+                .andExpect(
+                        jsonPath("$.totalPages")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.first")
+                                .value(false)
+                )
+                .andExpect(
+                        jsonPath("$.last")
+                                .value(true)
+                );
+
+        ArgumentCaptor<GetRationsByAnimal> captor =
+                ArgumentCaptor.forClass(GetRationsByAnimal.class);
+
+        verify(rationService).getRationsByAnimal(captor.capture());
+
+        GetRationsByAnimal query = captor.getValue();
+
+        assertThat(query.animalId())
+                .isEqualTo(animalId);
+
+        assertThat(query.pageable().getPageNumber())
+                .isEqualTo(1);
+
+        assertThat(query.pageable().getPageSize())
+                .isEqualTo(10);
+
+        assertThat(query.pageable().getSort())
+                .isEqualTo(
+                        Sort.by(
+                                Sort.Direction.DESC,
+                                "dateDebut"
+                        )
+                );
+    }
+
+    @Test
+    void shouldRejectNegativePage() throws Exception {
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations",
+                                animalId
+                        )
+                                .param("page", "-1")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldRejectInvalidPageSize() throws Exception {
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations",
+                                animalId
+                        )
+                                .param("size", "101")
                 )
                 .andExpect(status().isBadRequest());
     }
