@@ -19,4 +19,10 @@ public interface NutritionQueries {
             UUID animalId,
             LocalDate date
     );
+
+    Optional<FeedCostReference> calculateFeedCost(
+            UUID animalId,
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    );
 }

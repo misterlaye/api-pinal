@@ -1,5 +1,6 @@
 package com.dairy.apipinal.nutrition.application;
 
+import com.dairy.apipinal.nutrition.api.FeedCostReference;
 import com.dairy.apipinal.nutrition.api.NutritionQueries;
 import com.dairy.apipinal.nutrition.api.RationCostReference;
 import com.dairy.apipinal.nutrition.api.RationReference;
@@ -11,6 +12,7 @@ import com.dairy.apipinal.shared.security.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,15 +40,14 @@ public class NutritionQueriesImpl implements NutritionQueries {
 
         UUID tenantId = tenantContext.currentTenantId();
 
-        Ration ration = rationRepository
+        return rationRepository
                 .findByIdAndTenantId(rationId, tenantId)
+                .map(this::toReference)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Ration introuvable : " + rationId
                         )
                 );
-
-        return toReference(ration);
     }
 
     @Override
@@ -110,7 +111,52 @@ public class NutritionQueriesImpl implements NutritionQueries {
         );
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<FeedCostReference> calculateFeedCost(
+            UUID animalId,
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        validatePeriod(dateDebut, dateFinExclusive);
+
+        BigDecimal coutTotal = BigDecimal.ZERO;
+
+        LocalDate date = dateDebut;
+
+        while (date.isBefore(dateFinExclusive)) {
+
+            Optional<RationCostReference> coutJournalier =
+                    calculateFeedCost(animalId, date);
+
+            /*
+             * On ne transforme pas l'absence de ration en coût nul.
+             * Un coût alimentaire partiellement déterminé ne doit pas
+             * être présenté comme un coût complet.
+             */
+            if (coutJournalier.isEmpty()) {
+                return Optional.empty();
+            }
+
+            coutTotal = coutTotal.add(
+                    coutJournalier.get().coutAlimentation()
+            );
+
+            date = date.plusDays(1);
+        }
+
+        return Optional.of(
+                new FeedCostReference(
+                        animalId,
+                        dateDebut,
+                        dateFinExclusive,
+                        coutTotal
+                )
+        );
+    }
+
     private RationReference toReference(Ration ration) {
+
         return new RationReference(
                 ration.getId(),
                 ration.getTenantId(),
@@ -120,5 +166,22 @@ public class NutritionQueriesImpl implements NutritionQueries {
                 ration.getStatut(),
                 ration.getOrigine()
         );
+    }
+
+    private void validatePeriod(
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        if (dateDebut == null || dateFinExclusive == null) {
+            throw new IllegalArgumentException(
+                    "Les bornes de la période sont obligatoires."
+            );
+        }
+
+        if (!dateDebut.isBefore(dateFinExclusive)) {
+            throw new IllegalArgumentException(
+                    "La date de début doit être antérieure à la date de fin."
+            );
+        }
     }
 }
