@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -265,6 +266,66 @@ class PrixAlimentServiceTest {
                 .isSameAs(prix);
 
         verify(prixAlimentRepository)
+                .save(any(PrixAliment.class));
+    }
+
+    @Test
+    void shouldRefuseNonPositivePrice() {
+
+        UUID alimentId = UUID.randomUUID();
+
+        CreatePrixAliment command = new CreatePrixAliment(
+                alimentId,
+                BigDecimal.ZERO,
+                LocalDate.of(2026, 9, 1),
+                LocalDate.of(2026, 9, 30)
+        );
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.of(mock(Aliment.class)));
+
+        when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
+                alimentId,
+                command.dateDebut(),
+                command.dateFin()
+        )).thenReturn(false);
+
+        assertThatThrownBy(() ->
+                prixAlimentService.create(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(prixAlimentRepository, never())
+                .save(any(PrixAliment.class));
+    }
+
+    @Test
+    void shouldRefuseNegativePrice() {
+
+        UUID alimentId = UUID.randomUUID();
+
+        CreatePrixAliment command = new CreatePrixAliment(
+                alimentId,
+                new BigDecimal("-10.00"),
+                LocalDate.of(2026, 9, 1),
+                LocalDate.of(2026, 9, 30)
+        );
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.of(mock(Aliment.class)));
+
+        when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
+                alimentId,
+                command.dateDebut(),
+                command.dateFin()
+        )).thenReturn(false);
+
+        assertThatThrownBy(() ->
+                prixAlimentService.create(command)
+        )
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(prixAlimentRepository, never())
                 .save(any(PrixAliment.class));
     }
 }
