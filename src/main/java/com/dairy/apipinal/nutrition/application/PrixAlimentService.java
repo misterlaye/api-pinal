@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PrixAlimentService {
@@ -84,5 +85,20 @@ public class PrixAlimentService {
                 .findAllByAlimentIdOrderByDateDebutDesc(
                         query.alimentId()
                 );
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PrixAliment> getApplicablePrice(
+            GetApplicablePrixAliment query
+    ) {
+        alimentRepository.findById(query.alimentId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Aliment introuvable."
+                ));
+
+        return prixAlimentRepository.findApplicablePrice(
+                query.alimentId(),
+                query.date()
+        );
     }
 }

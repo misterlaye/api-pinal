@@ -1,5 +1,6 @@
 package com.dairy.apipinal.nutrition;
 
+import com.dairy.apipinal.nutrition.application.GetApplicablePrixAliment;
 import com.dairy.apipinal.nutrition.application.GetPrixAlimentHistory;
 import com.dairy.apipinal.nutrition.application.PrixAlimentService;
 import com.dairy.apipinal.nutrition.application.CreatePrixAliment;
@@ -19,6 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -271,5 +273,105 @@ class PrixAlimentControllerTest {
 
         assertThat(captor.getValue().alimentId())
                 .isEqualTo(alimentId);
+    }
+
+    @Test
+    void shouldGetApplicablePrice() throws Exception {
+
+        UUID prixId = UUID.randomUUID();
+
+        LocalDate date = LocalDate.of(2026, 10, 15);
+
+        PrixAliment prix = new PrixAliment(
+                alimentId,
+                new BigDecimal("120.00"),
+                LocalDate.of(2026, 10, 1),
+                LocalDate.of(2026, 10, 31)
+        );
+
+        when(prixAlimentService.getApplicablePrice(
+                new GetApplicablePrixAliment(
+                        alimentId,
+                        date
+                )
+        )).thenReturn(Optional.of(prix));
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/aliments/{alimentId}/prices/applicable",
+                                alimentId
+                        )
+                                .param("date", "2026-10-15")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.alimentId")
+                                .value(alimentId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.prixUnitaire")
+                                .value(120.0)
+                )
+                .andExpect(
+                        jsonPath("$.dateDebut")
+                                .value("2026-10-01")
+                )
+                .andExpect(
+                        jsonPath("$.dateFin")
+                                .value("2026-10-31")
+                );
+
+        ArgumentCaptor<GetApplicablePrixAliment> captor =
+                ArgumentCaptor.forClass(
+                        GetApplicablePrixAliment.class
+                );
+
+        verify(prixAlimentService)
+                .getApplicablePrice(captor.capture());
+
+        assertThat(captor.getValue().alimentId())
+                .isEqualTo(alimentId);
+
+        assertThat(captor.getValue().date())
+                .isEqualTo(date);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenNoApplicablePrice() throws Exception {
+
+        LocalDate date = LocalDate.of(2025, 12, 15);
+
+        when(prixAlimentService.getApplicablePrice(
+                new GetApplicablePrixAliment(
+                        alimentId,
+                        date
+                )
+        )).thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/aliments/{alimentId}/prices/applicable",
+                                alimentId
+                        )
+                                .param("date", "2025-12-15")
+                )
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldRejectMissingDate() throws Exception {
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/aliments/{alimentId}/prices/applicable",
+                                alimentId
+                        )
+                )
+                .andExpect(status().isBadRequest());
     }
 }

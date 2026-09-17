@@ -1,5 +1,6 @@
 package com.dairy.apipinal.nutrition;
 
+import com.dairy.apipinal.nutrition.application.GetApplicablePrixAliment;
 import com.dairy.apipinal.nutrition.application.GetPrixAlimentHistory;
 import com.dairy.apipinal.nutrition.application.PrixAlimentService;
 import com.dairy.apipinal.nutrition.application.CreatePrixAliment;
@@ -388,5 +389,95 @@ class PrixAlimentServiceTest {
 
         assertThat(result)
                 .isEmpty();
+    }
+
+    @Test
+    void shouldGetApplicablePriceAtGivenDate() {
+
+        UUID alimentId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2026, 10, 15);
+
+        Aliment aliment = mock(Aliment.class);
+        PrixAliment prix = mock(PrixAliment.class);
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.of(aliment));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                date
+        )).thenReturn(Optional.of(prix));
+
+        Optional<PrixAliment> result =
+                prixAlimentService.getApplicablePrice(
+                        new GetApplicablePrixAliment(
+                                alimentId,
+                                date
+                        )
+                );
+
+        assertThat(result)
+                .containsSame(prix);
+
+        verify(alimentRepository)
+                .findById(alimentId);
+
+        verify(prixAlimentRepository)
+                .findApplicablePrice(
+                        alimentId,
+                        date
+                );
+    }
+
+    @Test
+    void shouldReturnEmptyWhenNoPriceIsApplicable() {
+
+        UUID alimentId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2025, 12, 15);
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.of(mock(Aliment.class)));
+
+        when(prixAlimentRepository.findApplicablePrice(
+                alimentId,
+                date
+        )).thenReturn(Optional.empty());
+
+        Optional<PrixAliment> result =
+                prixAlimentService.getApplicablePrice(
+                        new GetApplicablePrixAliment(
+                                alimentId,
+                                date
+                        )
+                );
+
+        assertThat(result)
+                .isEmpty();
+    }
+
+    @Test
+    void shouldRefuseApplicablePriceWhenAlimentDoesNotExist() {
+
+        UUID alimentId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2026, 10, 15);
+
+        when(alimentRepository.findById(alimentId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                prixAlimentService.getApplicablePrice(
+                        new GetApplicablePrixAliment(
+                                alimentId,
+                                date
+                        )
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Aliment introuvable.");
+
+        verify(
+                prixAlimentRepository,
+                never()
+        ).findApplicablePrice(any(), any());
     }
 }
