@@ -68,4 +68,38 @@ public interface RationRepository
             @Param("dateDebut") LocalDate dateDebut,
             @Param("statut") StatutRation statut
     );
+
+    @Query("""
+        select r
+        from Ration r
+        where r.tenantId = :tenantId
+          and r.animalId = :animalId
+          and r.statut = com.dairy.apipinal.nutrition.domain.StatutRation.ACTIVE
+          and r.dateDebut <= :date
+          and (r.dateFin is null or r.dateFin >= :date)
+        """)
+    Optional<Ration> findActiveRationAtDate(
+            UUID tenantId,
+            UUID animalId,
+            LocalDate date
+    );
+
+    @Query("""
+    select r
+    from Ration r
+    where r.tenantId = :tenantId
+      and r.animalId = :animalId
+      and r.statut = :statut
+      and r.dateDebut <= :date
+      and (
+            r.dateFin is null
+            or r.dateFin >= :date
+          )
+    """)
+    Optional<Ration> findActiveRationAtDate(
+            @Param("tenantId") UUID tenantId,
+            @Param("animalId") UUID animalId,
+            @Param("date") LocalDate date,
+            @Param("statut") StatutRation statut
+    );
 }
