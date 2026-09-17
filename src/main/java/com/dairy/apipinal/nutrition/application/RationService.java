@@ -209,6 +209,12 @@ public class RationService {
                         "Ration introuvable."
                 ));
 
+        if (!ration.getAnimalId().equals(query.animalId())) {
+            throw new IllegalArgumentException(
+                    "La ration n'appartient pas à l'animal indiqué."
+            );
+        }
+
         BigDecimal total = BigDecimal.ZERO;
 
         List<RationCostLine> costLines = new ArrayList<>();

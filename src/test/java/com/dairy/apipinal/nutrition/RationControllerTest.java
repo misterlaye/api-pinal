@@ -1,8 +1,6 @@
 package com.dairy.apipinal.nutrition;
 
-import com.dairy.apipinal.nutrition.application.GetRationsByAnimal;
-import com.dairy.apipinal.nutrition.application.RationService;
-import com.dairy.apipinal.nutrition.application.TerminateRation;
+import com.dairy.apipinal.nutrition.application.*;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
 import com.dairy.apipinal.nutrition.domain.Ration;
 import com.dairy.apipinal.nutrition.infrastructure.web.RationController;
@@ -20,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -552,6 +551,110 @@ class RationControllerTest {
                                 animalId
                         )
                                 .param("size", "101")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldCalculateRationCost() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+        UUID alimentId = UUID.randomUUID();
+
+        LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
+
+        RationCostResult result = new RationCostResult(
+                rationId,
+                dateCalcul,
+                List.of(
+                        new RationCostLine(
+                                alimentId,
+                                new BigDecimal("5.0000"),
+                                new BigDecimal("100.00"),
+                                new BigDecimal("500.00")
+                        )
+                ),
+                new BigDecimal("500.00")
+        );
+
+        when(rationService.calculateCost(
+                any(CalculateRationCost.class)
+        )).thenReturn(result);
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations/{rationId}/cost",
+                                animalId,
+                                rationId
+                        )
+                                .param("date", "2026-09-17")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.rationId")
+                                .value(rationId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.dateCalcul")
+                                .value("2026-09-17")
+                )
+                .andExpect(
+                        jsonPath("$.lignes.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.lignes[0].alimentId")
+                                .value(alimentId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.lignes[0].quantite")
+                                .value(5.0)
+                )
+                .andExpect(
+                        jsonPath("$.lignes[0].prixUnitaire")
+                                .value(100.0)
+                )
+                .andExpect(
+                        jsonPath("$.lignes[0].cout")
+                                .value(500.0)
+                )
+                .andExpect(
+                        jsonPath("$.coutTotal")
+                                .value(500.0)
+                );
+        ArgumentCaptor<CalculateRationCost> captor =
+                ArgumentCaptor.forClass(CalculateRationCost.class);
+
+        verify(rationService).calculateCost(captor.capture());
+
+        CalculateRationCost query = captor.getValue();
+
+        assertThat(query.animalId())
+                .isEqualTo(animalId);
+
+        assertThat(query.rationId())
+                .isEqualTo(rationId);
+
+        assertThat(query.dateCalcul())
+                .isEqualTo(dateCalcul);
+    }
+
+    @Test
+    void shouldRejectCostCalculationWhenDateIsMissing() throws Exception {
+
+        UUID rationId = UUID.randomUUID();
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/animals/{animalId}/rations/{rationId}/cost",
+                                animalId,
+                                rationId
+                        )
                 )
                 .andExpect(status().isBadRequest());
     }

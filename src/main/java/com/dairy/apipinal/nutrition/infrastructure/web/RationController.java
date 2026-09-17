@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -144,6 +145,25 @@ public class RationController {
 
         return ResponseEntity.ok(
                 RationsPageResponse.from(rations)
+        );
+    }
+
+    @GetMapping("/{rationId}/cost")
+    public ResponseEntity<RationCostResponse> calculateCost(
+            @PathVariable UUID animalId,
+            @PathVariable UUID rationId,
+            @RequestParam LocalDate date
+    ) {
+        RationCostResult result = rationService.calculateCost(
+                new CalculateRationCost(
+                        animalId,
+                        rationId,
+                        date
+                )
+        );
+
+        return ResponseEntity.ok(
+                RationCostResponse.from(result)
         );
     }
 }

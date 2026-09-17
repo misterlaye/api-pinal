@@ -635,6 +635,7 @@ class RationServiceTest {
         RationCostResult result =
                 rationService.calculateCost(
                         new CalculateRationCost(
+                                animalId,
                                 rationId,
                                 dateCalcul
                         )
@@ -685,6 +686,7 @@ class RationServiceTest {
         assertThatThrownBy(() ->
                 rationService.calculateCost(
                         new CalculateRationCost(
+                                animalId,
                                 rationId,
                                 dateCalcul
                         )
@@ -712,6 +714,7 @@ class RationServiceTest {
         assertThatThrownBy(() ->
                 rationService.calculateCost(
                         new CalculateRationCost(
+                                animalId,
                                 rationId,
                                 dateCalcul
                         )
@@ -719,5 +722,47 @@ class RationServiceTest {
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Ration introuvable.");
+    }
+
+    @Test
+    void shouldRefuseCostCalculationWhenAnimalDoesNotMatch() {
+        UUID tenantId = UUID.randomUUID();
+        UUID rationAnimalId = UUID.randomUUID();
+        UUID requestedAnimalId = UUID.randomUUID();
+        UUID rationId = UUID.randomUUID();
+
+        LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
+
+        Ration ration = new Ration(
+                tenantId,
+                rationAnimalId,
+                LocalDate.of(2026, 9, 1),
+                OrigineRation.ACTUELLE
+        );
+
+        when(tenantContext.currentTenantId())
+                .thenReturn(tenantId);
+
+        when(rationRepository.findByIdAndTenantId(
+                rationId,
+                tenantId
+        )).thenReturn(Optional.of(ration));
+
+        assertThatThrownBy(() ->
+                rationService.calculateCost(
+                        new CalculateRationCost(
+                                requestedAnimalId,
+                                rationId,
+                                dateCalcul
+                        )
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "La ration n'appartient pas à l'animal indiqué."
+                );
+
+        verify(prixAlimentRepository, never())
+                .findApplicablePrice(any(), any());
     }
 }
