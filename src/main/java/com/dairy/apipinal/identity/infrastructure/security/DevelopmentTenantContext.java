@@ -1,5 +1,6 @@
-package com.dairy.apipinal.shared.security;
+package com.dairy.apipinal.identity.infrastructure.security;
 
+import com.dairy.apipinal.shared.security.TenantContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 

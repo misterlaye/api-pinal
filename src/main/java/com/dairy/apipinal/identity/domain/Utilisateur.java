@@ -91,4 +91,17 @@ public class Utilisateur {
     public StatutUtilisateur getStatut() {
         return statut;
     }
+
+    public void updateProfil(String nom, String prenom, String email) {
+        if (nom != null && !nom.isBlank()) {
+            this.nom = nom;
+        }
+        if (prenom != null && !prenom.isBlank()) {
+            this.prenom = prenom;
+        }
+        if (email != null) {
+            this.email = email;
+        }
+        this.updatedAt = OffsetDateTime.now();
+    }
 }
