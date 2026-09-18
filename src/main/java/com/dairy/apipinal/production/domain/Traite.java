@@ -25,6 +25,9 @@ public class Traite {
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
 
+    @Column(name = "exploitation_id")
+    private UUID exploitationId;
+
     @Column(name = "lactation_id", nullable = false)
     private UUID lactationId;
 
@@ -100,6 +103,10 @@ public class Traite {
 
     public UUID getTenantId() {
         return tenantId;
+    }
+
+    public UUID getExploitationId() {
+        return exploitationId;
     }
 
     public UUID getLactationId() {

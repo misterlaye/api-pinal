@@ -24,6 +24,9 @@ public class PrixVenteLait {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 
+    @Column(name = "exploitation_id")
+    private UUID exploitationId;
+
     @Column(name = "prix_par_litre", nullable = false, precision = 19, scale = 4)
     private BigDecimal prixParLitre;
 
@@ -83,6 +86,10 @@ public class PrixVenteLait {
 
     public UUID getTenantId() {
         return tenantId;
+    }
+
+    public UUID getExploitationId() {
+        return exploitationId;
     }
 
     public BigDecimal getPrixParLitre() {

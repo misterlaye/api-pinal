@@ -23,6 +23,9 @@ public class EvenementSanitaire {
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
 
+    @Column(name = "exploitation_id")
+    private UUID exploitationId;
+
     @Column(name = "animal_id", nullable = false)
     private UUID animalId;
 
@@ -139,6 +142,10 @@ public class EvenementSanitaire {
 
     public UUID getTenantId() {
         return tenantId;
+    }
+
+    public UUID getExploitationId() {
+        return exploitationId;
     }
 
     public UUID getAnimalId() {
