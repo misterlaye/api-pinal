@@ -49,6 +49,7 @@ class RationControllerTest {
 
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new RationController(rationService))
+                .setControllerAdvice(new com.dairy.apipinal.shared.infrastructure.web.GlobalExceptionHandler())
                 .build();
 
         objectMapper = new ObjectMapper();

@@ -177,19 +177,19 @@ public class AnimalRentabilityService {
             LocalDate periodeFin
     ) {
         if (animalId == null) {
-            throw new IllegalArgumentException(
+            throw new InvalidRentabilityPeriodException(
                     "L'identifiant de l'animal est obligatoire."
             );
         }
 
         if (periodeDebut == null || periodeFin == null) {
-            throw new IllegalArgumentException(
+            throw new InvalidRentabilityPeriodException(
                     "La période est obligatoire."
             );
         }
 
         if (periodeFin.isBefore(periodeDebut)) {
-            throw new IllegalArgumentException(
+            throw new InvalidRentabilityPeriodException(
                     "La date de fin doit être supérieure ou égale à la date de début."
             );
         }

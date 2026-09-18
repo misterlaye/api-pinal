@@ -233,4 +233,40 @@ class FinanceControllerTest {
                 )
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void shouldReturn400WhenRentabilityPeriodIsInvalid()
+            throws Exception {
+
+        UUID animalId = UUID.randomUUID();
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/finance/animals/{animalId}/rentabilite",
+                                animalId
+                        )
+                                .param("dateDebut", "2026-09-30")
+                                .param("dateFin", "2026-09-01")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(
+                        jsonPath("$.error")
+                                .value("Bad Request")
+                )
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "La date de fin doit être supérieure ou égale à la date de début."
+                                )
+                )
+                .andExpect(
+                        jsonPath("$.path")
+                                .value(
+                                        "/api/v1/finance/animals/"
+                                                + animalId
+                                                + "/rentabilite"
+                                )
+                );
+    }
 }

@@ -140,6 +140,7 @@ class NutritionQueriesTest {
                 OrigineRation.ACTUELLE
         );
 
+        ration.ajouterLigne(UUID.randomUUID(), new BigDecimal("5"));
         ration.activer();
 
         when(tenantContext.currentTenantId())
@@ -249,6 +250,7 @@ class NutritionQueriesTest {
                 OrigineRation.ACTUELLE
         );
 
+        ration.ajouterLigne(UUID.randomUUID(), new BigDecimal("5"));
         ration.activer();
 
         when(tenantContext.currentTenantId())

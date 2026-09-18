@@ -30,3 +30,10 @@ spring:
             - health
             - info
             - flyway
+
+  security:
+    user:
+      name: dev
+      password: ${DEV_SECURITY_PASSWORD:passer123}
+      roles:
+        - PROPRIETAIRE
