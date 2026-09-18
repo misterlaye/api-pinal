@@ -1,0 +1,233 @@
+package com.dairy.apipinal.nutrition.application;
+
+import com.dairy.apipinal.nutrition.api.*;
+import com.dairy.apipinal.nutrition.application.CalculateRationCost;
+import com.dairy.apipinal.nutrition.domain.Ration;
+import com.dairy.apipinal.nutrition.domain.StatutRation;
+import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
+import com.dairy.apipinal.shared.security.TenantContext;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class NutritionQueriesImpl implements NutritionQueries {
+
+    private final RationRepository rationRepository;
+    private final RationService rationService;
+    private final TenantContext tenantContext;
+
+    public NutritionQueriesImpl(
+            RationRepository rationRepository,
+            RationService rationService,
+            TenantContext tenantContext
+    ) {
+        this.rationRepository = rationRepository;
+        this.rationService = rationService;
+        this.tenantContext = tenantContext;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RationReference getRation(UUID rationId) {
+
+        UUID tenantId = tenantContext.currentTenantId();
+
+        return rationRepository
+                .findByIdAndTenantId(rationId, tenantId)
+                .map(this::toReference)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Ration introuvable : " + rationId
+                        )
+                );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID rationId) {
+
+        UUID tenantId = tenantContext.currentTenantId();
+
+        return rationRepository.existsByIdAndTenantId(
+                rationId,
+                tenantId
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RationReference> findActiveRation(
+            UUID animalId,
+            LocalDate date
+    ) {
+        UUID tenantId = tenantContext.currentTenantId();
+
+        return rationRepository
+                .findActiveRationAtDate(
+                        tenantId,
+                        animalId,
+                        date,
+                        StatutRation.ACTIVE
+                )
+                .map(this::toReference);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RationCostReference> calculateFeedCost(
+            UUID animalId,
+            LocalDate date
+    ) {
+        Optional<RationReference> ration =
+                findActiveRation(animalId, date);
+
+        if (ration.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var result = rationService.calculateCost(
+                new CalculateRationCost(
+                        animalId,
+                        ration.get().id(),
+                        date
+                )
+        );
+
+        return Optional.of(
+                new RationCostReference(
+                        result.rationId(),
+                        animalId,
+                        date,
+                        result.coutTotal()
+                )
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<FeedCostReference> calculateFeedCost(
+            UUID animalId,
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        validatePeriod(dateDebut, dateFinExclusive);
+
+        BigDecimal coutTotal = BigDecimal.ZERO;
+
+        LocalDate date = dateDebut;
+
+        while (date.isBefore(dateFinExclusive)) {
+
+            Optional<RationCostReference> coutJournalier =
+                    calculateFeedCost(animalId, date);
+
+            /*
+             * On ne transforme pas l'absence de ration en coût nul.
+             * Un coût alimentaire partiellement déterminé ne doit pas
+             * être présenté comme un coût complet.
+             */
+            if (coutJournalier.isEmpty()) {
+                return Optional.empty();
+            }
+
+            coutTotal = coutTotal.add(
+                    coutJournalier.get().coutAlimentation()
+            );
+
+            date = date.plusDays(1);
+        }
+
+        return Optional.of(
+                new FeedCostReference(
+                        animalId,
+                        dateDebut,
+                        dateFinExclusive,
+                        coutTotal
+                )
+        );
+    }
+
+    private RationReference toReference(Ration ration) {
+
+        return new RationReference(
+                ration.getId(),
+                ration.getTenantId(),
+                ration.getAnimalId(),
+                ration.getDateDebut(),
+                ration.getDateFin(),
+                ration.getStatut(),
+                ration.getOrigine()
+        );
+    }
+
+    private void validatePeriod(
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        if (dateDebut == null || dateFinExclusive == null) {
+            throw new IllegalArgumentException(
+                    "Les bornes de la période sont obligatoires."
+            );
+        }
+
+        if (!dateDebut.isBefore(dateFinExclusive)) {
+            throw new IllegalArgumentException(
+                    "La date de début doit être antérieure à la date de fin."
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ExploitationFeedCostReference> calculateTotalFeedCost(
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        validatePeriod(dateDebut, dateFinExclusive);
+
+        UUID tenantId = tenantContext.currentTenantId();
+
+        BigDecimal coutTotal = BigDecimal.ZERO;
+
+        LocalDate date = dateDebut;
+
+        while (date.isBefore(dateFinExclusive)) {
+
+            var rations = rationRepository.findAllActiveRationsAtDate(
+                    tenantId,
+                    date,
+                    StatutRation.ACTIVE
+            );
+
+            for (Ration ration : rations) {
+
+                var result = rationService.calculateCost(
+                        new CalculateRationCost(
+                                ration.getAnimalId(),
+                                ration.getId(),
+                                date
+                        )
+                );
+
+                coutTotal = coutTotal.add(
+                        result.coutTotal()
+                );
+            }
+
+            date = date.plusDays(1);
+        }
+
+        return Optional.of(
+                new ExploitationFeedCostReference(
+                        dateDebut,
+                        dateFinExclusive,
+                        coutTotal
+                )
+        );
+    }
+}

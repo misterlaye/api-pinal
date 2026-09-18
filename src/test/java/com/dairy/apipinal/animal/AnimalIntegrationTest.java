@@ -3,7 +3,9 @@ package com.dairy.apipinal.animal;
 import com.dairy.apipinal.animal.application.CreateAnimal;
 import com.dairy.apipinal.animal.infrastructure.persistence.RaceRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
+import com.dairy.apipinal.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -12,6 +14,7 @@ import java.util.UUID;
 import static org.mockito.Mockito.when;
 
 @ApplicationModuleTest
+@Import(TestcontainersConfiguration.class)
 class AnimalIntegrationTest {
 
     private final CreateAnimal createAnimal;

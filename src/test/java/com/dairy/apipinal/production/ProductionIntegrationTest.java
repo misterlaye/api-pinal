@@ -8,7 +8,9 @@ import com.dairy.apipinal.production.domain.Traite;
 import com.dairy.apipinal.production.domain.TypeTraite;
 import com.dairy.apipinal.production.infrastructure.persistence.LactationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
+import com.dairy.apipinal.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -21,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ApplicationModuleTest
+@Import(TestcontainersConfiguration.class)
 class ProductionIntegrationTest {
 
     @MockitoBean
