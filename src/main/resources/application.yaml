@@ -32,8 +32,7 @@ spring:
             - flyway
 
   security:
-    user:
-      name: dev
-      password: ${DEV_SECURITY_PASSWORD:passer123}
-      roles:
-        - PROPRIETAIRE
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SUPABASE_JWT_ISSUER:https://your-project.supabase.co/auth/v1}
