@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -32,15 +31,8 @@ public class JwtTenantContext implements TenantContext {
     @Override
     public UUID currentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            String sub = jwt.getSubject();
-            if (sub != null) {
-                try {
-                    return UUID.fromString(sub);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalStateException("Le subject du JWT n'est pas un UUID valide : " + sub);
-                }
-            }
+        if (authentication != null && authentication.getPrincipal() instanceof UUID userId) {
+            return userId;
         }
         throw new IllegalStateException("Aucun utilisateur authentifié ou jeton JWT manquant.");
     }
@@ -75,3 +67,4 @@ public class JwtTenantContext implements TenantContext {
         return Optional.empty();
     }
 }
+

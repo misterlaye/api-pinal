@@ -31,8 +31,12 @@ spring:
             - info
             - flyway
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SUPABASE_JWT_ISSUER:https://your-project.supabase.co/auth/v1}
+pinal:
+  jwt:
+    secret: ${JWT_SECRET:my-super-secret-key-for-development-only-min-32-chars!!}
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+  otp:
+    expiration: 300
+    max-attempts: 5
+    code-length: 6

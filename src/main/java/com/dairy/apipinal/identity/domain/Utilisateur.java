@@ -48,16 +48,16 @@ public class Utilisateur {
     }
 
     /**
-     * Crée un utilisateur à partir de son UID Supabase.
+     * Crée un utilisateur.
      * Le téléphone est l'identifiant principal (passwordless OTP).
      */
     public Utilisateur(
-            UUID supabaseUid,
+            UUID userId,
             String telephone,
             String nom,
             String prenom
     ) {
-        this.id = supabaseUid;
+        this.id = userId;
         this.telephone = telephone;
         this.nom = nom;
         this.prenom = prenom;

@@ -9,12 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,20 +38,13 @@ class JwtTenantContextTest {
     }
 
     @Test
-    void shouldExtractUserIdAndTenantIdFromJwt() {
+    void shouldExtractUserIdAndTenantIdFromAuthentication() {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
         UUID expId = UUID.randomUUID();
 
-        Jwt jwt = new Jwt(
-                "token-valide",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                Map.of("alg", "HS256"),
-                Map.of("sub", userId.toString())
-        );
-
-        JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt);
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         ExploitationInfo info = new ExploitationInfo(expId, tenantId, "Ferme Pinal", "Dakar", "PROPRIETAIRE");
