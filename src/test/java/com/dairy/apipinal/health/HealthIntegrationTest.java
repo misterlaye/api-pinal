@@ -1,11 +1,13 @@
 package com.dairy.apipinal.health;
 
+import com.dairy.apipinal.TestcontainersConfiguration;
 import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.animal.api.AnimalReference;
 import com.dairy.apipinal.health.application.RecordHealthEvent;
 import com.dairy.apipinal.health.domain.EvenementSanitaire;
 import com.dairy.apipinal.shared.security.TenantContext;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -16,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 @ApplicationModuleTest
+@Import(TestcontainersConfiguration.class)
 class HealthIntegrationTest {
 
     @MockitoBean
