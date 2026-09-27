@@ -13,4 +13,6 @@ public interface FinanceQueries {
     );
 
     Optional<RentabiliteReference> findLatestRentabilite();
+
+    com.dairy.apipinal.finance.infrastructure.web.FinanceDashboardResponse getDashboardSummary();
 }

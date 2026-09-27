@@ -16,7 +16,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+
+import com.dairy.apipinal.finance.application.ChargeExploitationService;
+import com.dairy.apipinal.finance.application.CreateChargeExploitation;
+import com.dairy.apipinal.finance.application.CreatePrixVenteLait;
+import com.dairy.apipinal.finance.application.PrixVenteLaitService;
+import com.dairy.apipinal.finance.domain.ChargeExploitation;
+import com.dairy.apipinal.finance.domain.PrixVenteLait;
 
 @Tag(
         name = "Finance",
@@ -30,13 +40,19 @@ public class FinanceController {
 
     private final FinanceQueries financeQueries;
     private final FinanceRestMapper mapper;
+    private final ChargeExploitationService chargeService;
+    private final PrixVenteLaitService prixService;
 
     public FinanceController(
             FinanceQueries financeQueries,
-            FinanceRestMapper mapper
+            FinanceRestMapper mapper,
+            ChargeExploitationService chargeService,
+            PrixVenteLaitService prixService
     ) {
         this.financeQueries = financeQueries;
         this.mapper = mapper;
+        this.chargeService = chargeService;
+        this.prixService = prixService;
     }
 
     @Operation(
@@ -217,16 +233,53 @@ public class FinanceController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/transactions")
-    public ResponseEntity<java.util.List<TransactionResponse>> getTransactions() {
-        return ResponseEntity.ok(java.util.List.of(
-            new TransactionResponse("1", "REVENU", "Vente de lait", 94500.0, "18 juin 2024", "COMPLETED", "Vente Lait - Laiterie San Delta"),
-            new TransactionResponse("2", "CHARGE", "Alimentation", 145000.0, "15 juin 2024", "COMPLETED", "Livraison Foin + Son de blé"),
-            new TransactionResponse("3", "REVENU", "Vente de lait", 56200.0, "12 juin 2024", "COMPLETED", "Vente Lait - Marché local Thiès"),
-            new TransactionResponse("4", "CHARGE", "Santé vétérinaire", 32000.0, "10 juin 2024", "COMPLETED", "Visite vétérinaire - Dr. Sarr"),
-            new TransactionResponse("5", "CHARGE", "Alimentation", 98500.0, "9 juin 2024", "COMPLETED", "Livraison Tourteau d'arachide"),
-            new TransactionResponse("6", "CHARGE", "Main d'oeuvre", 72500.0, "5 juin 2024", "COMPLETED", "Salaires personnel de ferme"),
-            new TransactionResponse("7", "REVENU", "Vente de lait", 69700.0, "2 juin 2024", "COMPLETED", "Vente Lait - Laiterie San Delta")
+    @PostMapping("/charges")
+    public ResponseEntity<ChargeResponse> createCharge(@Valid @RequestBody ChargeRequest request) {
+        ChargeExploitation charge = chargeService.create(new CreateChargeExploitation(
+                request.libelle(),
+                request.categorie(),
+                request.montant(),
+                request.date(),
+                request.description()
         ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ChargeResponse.from(charge));
+    }
+
+    @GetMapping("/charges")
+    public ResponseEntity<List<ChargeResponse>> getCharges(
+            @RequestParam @NotNull LocalDate dateDebut,
+            @RequestParam @NotNull LocalDate dateFin
+    ) {
+        return ResponseEntity.ok(
+                chargeService.getByPeriod(dateDebut, dateFin.plusDays(1))
+                        .stream()
+                        .map(ChargeResponse::from)
+                        .toList()
+        );
+    }
+
+    @PostMapping("/prix-vente")
+    public ResponseEntity<PrixVenteResponse> createPrixVente(@Valid @RequestBody PrixVenteRequest request) {
+        PrixVenteLait prix = prixService.create(new CreatePrixVenteLait(
+                request.prixParLitre(),
+                request.dateDebut(),
+                request.dateFin()
+        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(PrixVenteResponse.from(prix));
+    }
+
+    @GetMapping("/prix-vente")
+    public ResponseEntity<List<PrixVenteResponse>> getPrixVenteHistory() {
+        return ResponseEntity.ok(
+                prixService.getHistory()
+                        .stream()
+                        .map(PrixVenteResponse::from)
+                        .toList()
+        );
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<FinanceDashboardResponse> getDashboard() {
+        return ResponseEntity.ok(financeQueries.getDashboardSummary());
     }
 }

@@ -3,6 +3,8 @@ package com.dairy.apipinal.finance;
 import com.dairy.apipinal.finance.api.AnimalRentabilityReference;
 import com.dairy.apipinal.finance.api.FinanceQueries;
 import com.dairy.apipinal.finance.api.RentabiliteReference;
+import com.dairy.apipinal.finance.application.ChargeExploitationService;
+import com.dairy.apipinal.finance.application.PrixVenteLaitService;
 import com.dairy.apipinal.finance.infrastructure.web.AnimalRentabilityResponse;
 import com.dairy.apipinal.finance.infrastructure.web.FinanceController;
 import com.dairy.apipinal.finance.infrastructure.web.FinanceRestMapper;
@@ -36,6 +38,12 @@ class FinanceControllerTest {
 
     @MockitoBean
     private FinanceRestMapper mapper;
+
+    @MockitoBean
+    private ChargeExploitationService chargeService;
+
+    @MockitoBean
+    private PrixVenteLaitService prixService;
 
     @Test
     void shouldReturnLatestRentabilite() throws Exception {
