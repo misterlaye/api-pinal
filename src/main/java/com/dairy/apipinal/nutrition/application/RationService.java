@@ -153,7 +153,9 @@ public class RationService {
 
         ration.activer();
 
-        return rationRepository.save(ration);
+        Ration saved = rationRepository.save(ration);
+        saved.getLignes().size();
+        return saved;
     }
 
     @Transactional
@@ -174,16 +176,20 @@ public class RationService {
 
         ration.terminer(command.dateFin());
 
-        return rationRepository.save(ration);
+        Ration saved = rationRepository.save(ration);
+        saved.getLignes().size();
+        return saved;
     }
 
     @Transactional(readOnly = true)
     public Ration getRation(GetRation query) {
         UUID tenantId = tenantContext.currentTenantId();
 
-        return rationRepository
+        Ration ration = rationRepository
                 .findByIdAndTenantId(query.rationId(), tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Ration introuvable."));
+        ration.getLignes().size();
+        return ration;
     }
 
     @Transactional(readOnly = true)
@@ -192,11 +198,13 @@ public class RationService {
 
         animalQueries.getReference(query.animalId());
 
-        return rationRepository.findByTenantIdAndAnimalId(
+        Page<Ration> page = rationRepository.findByTenantIdAndAnimalId(
                 tenantId,
                 query.animalId(),
                 query.pageable()
         );
+        page.getContent().forEach(r -> r.getLignes().size());
+        return page;
     }
 
     @Transactional(readOnly = true)
