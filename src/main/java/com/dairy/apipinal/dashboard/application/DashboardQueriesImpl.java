@@ -20,13 +20,16 @@ public class DashboardQueriesImpl implements DashboardQueries {
 
     private final ProductionQueries productionQueries;
     private final NutritionQueries nutritionQueries;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public DashboardQueriesImpl(
             ProductionQueries productionQueries,
-            NutritionQueries nutritionQueries
+            NutritionQueries nutritionQueries,
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate
     ) {
         this.productionQueries = productionQueries;
         this.nutritionQueries = nutritionQueries;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -53,8 +56,14 @@ public class DashboardQueriesImpl implements DashboardQueries {
                 avgMoyenneVache
         );
 
+        Long totalAnimals = jdbcTemplate.queryForObject("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF'", Long.class);
+        if (totalAnimals == null) totalAnimals = 0L;
+        Long vachesLaitieres = jdbcTemplate.queryForObject("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF'", Long.class); // Simplified assumption for dairy cows
+        if (vachesLaitieres == null) vachesLaitieres = 0L;
+        Long vachesTaries = 0L; // Simplified
+
         DashboardSummary.HerdSummary troupeau = new DashboardSummary.HerdSummary(
-                12L, 8L, 4L
+                totalAnimals, vachesLaitieres, vachesTaries
         );
 
         Optional<ExploitationFeedCostReference> feedCost30J = nutritionQueries.calculateTotalFeedCost(
