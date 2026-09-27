@@ -25,6 +25,7 @@ import java.util.UUID;
 @SecurityRequirement(name = "basicAuth")
 @RestController
 @RequestMapping("/api/v1/finance")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class FinanceController {
 
     private final FinanceQueries financeQueries;
@@ -214,5 +215,18 @@ public class FinanceController {
                 .map(mapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<java.util.List<TransactionResponse>> getTransactions() {
+        return ResponseEntity.ok(java.util.List.of(
+            new TransactionResponse("1", "REVENU", "Vente de lait", 94500.0, "18 juin 2024", "COMPLETED", "Vente Lait - Laiterie San Delta"),
+            new TransactionResponse("2", "CHARGE", "Alimentation", 145000.0, "15 juin 2024", "COMPLETED", "Livraison Foin + Son de blé"),
+            new TransactionResponse("3", "REVENU", "Vente de lait", 56200.0, "12 juin 2024", "COMPLETED", "Vente Lait - Marché local Thiès"),
+            new TransactionResponse("4", "CHARGE", "Santé vétérinaire", 32000.0, "10 juin 2024", "COMPLETED", "Visite vétérinaire - Dr. Sarr"),
+            new TransactionResponse("5", "CHARGE", "Alimentation", 98500.0, "9 juin 2024", "COMPLETED", "Livraison Tourteau d'arachide"),
+            new TransactionResponse("6", "CHARGE", "Main d'oeuvre", 72500.0, "5 juin 2024", "COMPLETED", "Salaires personnel de ferme"),
+            new TransactionResponse("7", "REVENU", "Vente de lait", 69700.0, "2 juin 2024", "COMPLETED", "Vente Lait - Laiterie San Delta")
+        ));
     }
 }
