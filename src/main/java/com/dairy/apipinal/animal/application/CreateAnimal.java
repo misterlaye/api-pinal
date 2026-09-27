@@ -54,6 +54,8 @@ public class CreateAnimal {
                 command.nom(),
                 command.photoUrl(),
                 command.dateNaissance(),
+                command.mereId(),
+                command.pereIdentifiant(),
                 command.actorId()
         );
 
@@ -79,6 +81,8 @@ public class CreateAnimal {
             String nom,
             String photoUrl,
             LocalDate dateNaissance,
+            UUID mereId,
+            String pereIdentifiant,
             UUID actorId
     ) {
     }

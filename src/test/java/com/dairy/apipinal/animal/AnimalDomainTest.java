@@ -21,6 +21,8 @@ class AnimalDomainTest {
                 "Diouma",
                 null,
                 null,
+                null,
+                null,
                 UUID.randomUUID()
         );
 
@@ -36,6 +38,8 @@ class AnimalDomainTest {
                 UUID.randomUUID(),
                 "DI001",
                 "Diouma",
+                null,
+                null,
                 null,
                 null,
                 UUID.randomUUID()
@@ -54,6 +58,8 @@ class AnimalDomainTest {
                         "Diouma",
                         null,
                         null,
+                        null,
+                        null,
                         UUID.randomUUID()
                 )
         );
@@ -70,6 +76,8 @@ class AnimalDomainTest {
                 "Diouma",
                 null,
                 null,
+                null,
+                null,
                 UUID.randomUUID()
         );
 
@@ -84,6 +92,8 @@ class AnimalDomainTest {
                         UUID.randomUUID(),
                         "DI002",
                         "Diouma",
+                        null,
+                        null,
                         null,
                         null,
                         UUID.randomUUID()

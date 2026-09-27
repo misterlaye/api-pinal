@@ -11,4 +11,6 @@ public interface RaceRepository extends JpaRepository<Race, UUID> {
     Optional<Race> findByIdAndActifTrue(UUID id);
 
     boolean existsByCodeIgnoreCase(String code);
+
+    java.util.List<Race> findAllByActifTrueOrderByLibelleAsc();
 }

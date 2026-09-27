@@ -63,6 +63,8 @@ class AnimalIntegrationTest {
                         "Diouma",
                         null,
                         null,
+                        null,
+                        null,
                         userId
                 )
         );
