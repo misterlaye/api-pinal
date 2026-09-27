@@ -17,7 +17,6 @@ import java.util.UUID;
 
 @Component
 @Primary
-@Profile("!dev")
 public class JwtTenantContext implements TenantContext {
 
     private static final String EXPLOITATION_HEADER = "X-Exploitation-ID";
@@ -39,11 +38,24 @@ public class JwtTenantContext implements TenantContext {
 
     @Override
     public UUID currentTenantId() {
+        return getExploitationInfo().tenantId();
+    }
+
+    @Override
+    public UUID currentExploitationId() {
+        return getExploitationInfo().exploitationId();
+    }
+
+    @Override
+    public String currentRole() {
+        return getExploitationInfo().role().name();
+    }
+
+    private ExploitationInfo getExploitationInfo() {
         UUID userId = currentUserId();
         Optional<UUID> requestedExploitationId = getRequestedExploitationIdFromHeader();
 
         return identityQueries.getActiveExploitationForUser(userId, requestedExploitationId)
-                .map(ExploitationInfo::tenantId)
                 .orElseThrow(() -> new IllegalStateException(
                         "L'utilisateur " + userId + " n'a accès à aucune exploitation active."
                 ));
@@ -67,4 +79,3 @@ public class JwtTenantContext implements TenantContext {
         return Optional.empty();
     }
 }
-

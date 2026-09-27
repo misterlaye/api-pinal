@@ -56,7 +56,7 @@ public class Ration {
             mappedBy = "ration",
             cascade = CascadeType.ALL,
             orphanRemoval = true,
-            fetch = FetchType.LAZY
+            fetch = FetchType.EAGER
     )
     private final List<LigneRation> lignes = new ArrayList<>();
 

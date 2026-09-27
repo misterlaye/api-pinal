@@ -30,6 +30,7 @@ public class ManageMembership {
             UUID requesterId,
             UUID exploitationId,
             String telephone,
+            String nomComplet,
             RoleExploitation role
     ) {}
 
@@ -39,7 +40,8 @@ public class ManageMembership {
             String nom,
             String prenom,
             String telephone,
-            RoleExploitation role
+            RoleExploitation role,
+            String codePin
     ) {}
 
     public MemberView addMember(AddMemberCommand command) {
@@ -63,12 +65,22 @@ public class ManageMembership {
         }
 
         Utilisateur targetUser = utilisateurRepository.findByTelephone(command.telephone())
-                .orElseGet(() -> utilisateurRepository.save(new Utilisateur(
-                        UUID.randomUUID(),
-                        command.telephone(),
-                        "Membre",
-                        "Invité"
-                )));
+                .orElseGet(() -> {
+                    String[] parts = command.nomComplet().split(" ", 2);
+                    String prenom = parts.length > 0 ? parts[0] : "";
+                    String nom = parts.length > 1 ? parts[1] : "";
+                    return utilisateurRepository.save(new Utilisateur(
+                            UUID.randomUUID(),
+                            command.telephone(),
+                            nom.isBlank() ? "Inconnu" : nom,
+                            prenom.isBlank() ? command.nomComplet() : prenom
+                    ));
+                });
+
+        if (targetUser.getCodePin() == null || targetUser.getCodePin().isBlank()) {
+            targetUser.generateCodePin();
+            utilisateurRepository.save(targetUser);
+        }
 
         membershipRepository.findByUtilisateurIdAndExploitationId(targetUser.getId(), command.exploitationId())
                 .ifPresent(m -> {
@@ -85,7 +97,8 @@ public class ManageMembership {
                 targetUser.getNom(),
                 targetUser.getPrenom(),
                 targetUser.getTelephone(),
-                newMembership.getRole()
+                newMembership.getRole(),
+                targetUser.getCodePin()
         );
     }
 
@@ -104,7 +117,8 @@ public class ManageMembership {
                             user != null ? user.getNom() : "",
                             user != null ? user.getPrenom() : "",
                             user != null ? user.getTelephone() : "",
-                            m.getRole()
+                            m.getRole(),
+                            user != null ? user.getCodePin() : ""
                     );
                 })
                 .toList();

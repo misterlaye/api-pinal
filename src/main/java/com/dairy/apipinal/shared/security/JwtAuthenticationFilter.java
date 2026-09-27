@@ -18,8 +18,6 @@ import java.util.UUID;
  * Filtre HTTP qui intercepte le header Authorization: Bearer <token>,
  * valide le JWT via TokenValidator et place l'authentification dans le SecurityContext.
  */
-@Component
-@Profile("!dev")
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -30,7 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(TokenValidator tokenValidator) {
         this.tokenValidator = tokenValidator;
     }
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -62,4 +59,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-

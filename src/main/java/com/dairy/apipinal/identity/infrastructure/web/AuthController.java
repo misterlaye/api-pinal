@@ -48,6 +48,17 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/pin/verify")
+    public ResponseEntity<AuthService.AuthResponse> verifyPin(
+            @Valid @RequestBody OtpVerifyRequest request
+    ) {
+        AuthService.AuthResponse response = authService.verifyPin(
+                request.telephone(),
+                request.code() // on réutilise OtpVerifyRequest
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthService.AuthResponse> refreshToken(
             @Valid @RequestBody RefreshRequest request

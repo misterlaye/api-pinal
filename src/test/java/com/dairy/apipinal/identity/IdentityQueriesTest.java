@@ -30,11 +30,14 @@ class IdentityQueriesTest {
     @Mock
     private ExploitationRepository exploitationRepository;
 
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private IdentityQueriesImpl identityQueries;
 
     @BeforeEach
     void setUp() {
-        identityQueries = new IdentityQueriesImpl(membershipRepository, exploitationRepository);
+        identityQueries = new IdentityQueriesImpl(membershipRepository, exploitationRepository, jdbcTemplate);
     }
 
     @Test
@@ -70,7 +73,7 @@ class IdentityQueriesTest {
         assertTrue(active.isPresent());
         assertEquals(tenantId, active.get().tenantId());
         assertEquals("Ferme Pinal", active.get().nom());
-        assertEquals("PROPRIETAIRE", active.get().role());
+        assertEquals(RoleExploitation.PROPRIETAIRE, active.get().role());
     }
 
     @Test
@@ -91,6 +94,6 @@ class IdentityQueriesTest {
 
         assertTrue(result.isPresent());
         assertEquals(tenantId, result.get().tenantId());
-        assertEquals("GERANT", result.get().role());
+        assertEquals(RoleExploitation.GERANT, result.get().role());
     }
 }

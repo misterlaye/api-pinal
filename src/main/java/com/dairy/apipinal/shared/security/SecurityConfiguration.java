@@ -7,15 +7,20 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
-@Profile("!dev")
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final TokenValidator tokenValidator;
 
-    public SecurityConfiguration(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfiguration(TokenValidator tokenValidator) {
+        this.tokenValidator = tokenValidator;
     }
 
     @Bean
@@ -29,16 +34,26 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR, jakarta.servlet.DispatcherType.FORWARD).permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/actuator/health"
+                                "/actuator/health",
+                                "/error"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + authException.getMessage() + "\"}");
+                        })
+                )
+                .addFilterBefore(new JwtAuthenticationFilter(tokenValidator), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,4 +1,7 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: api-pinal
 
@@ -6,9 +9,9 @@ spring:
     active: dev
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/pinal_db
-    username: pinal
-    password: passer123
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/pinal_db}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   jpa:
     hibernate:
@@ -33,7 +36,7 @@ spring:
 
 pinal:
   jwt:
-    secret: ${JWT_SECRET:my-super-secret-key-for-development-only-min-32-chars!!}
+    secret: ${JWT_SECRET}
     access-token-expiration: 900
     refresh-token-expiration: 604800
   otp:

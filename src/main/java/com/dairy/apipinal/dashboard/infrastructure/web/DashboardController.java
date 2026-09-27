@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class DashboardController {
 
     private final DashboardQueries dashboardQueries;

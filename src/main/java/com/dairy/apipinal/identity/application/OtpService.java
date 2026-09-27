@@ -53,6 +53,11 @@ public class OtpService {
         OtpCode otpCode = new OtpCode(telephone, codeHash, expiresAt);
         otpCodeRepository.save(otpCode);
 
+        // AFFICHE LE CODE OTP DANS LE TERMINAL POUR LE DEVELOPPEMENT
+        System.out.println("\n=======================================================");
+        System.out.println("🔔 CODE OTP POUR " + telephone + " : " + code);
+        System.out.println("=======================================================\n");
+
         smsProvider.sendSms(telephone, "Votre code Pinal : " + code);
     }
 

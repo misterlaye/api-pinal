@@ -47,7 +47,7 @@ class JwtTenantContextTest {
                 new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        ExploitationInfo info = new ExploitationInfo(expId, tenantId, "Ferme Pinal", "Dakar", "PROPRIETAIRE");
+        ExploitationInfo info = new ExploitationInfo(expId, tenantId, "Ferme Pinal", "Dakar", com.dairy.apipinal.identity.domain.RoleExploitation.PROPRIETAIRE, 0, "Bon");
         when(identityQueries.getActiveExploitationForUser(userId, Optional.empty()))
                 .thenReturn(Optional.of(info));
 

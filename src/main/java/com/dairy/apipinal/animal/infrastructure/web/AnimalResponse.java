@@ -14,6 +14,8 @@ public record AnimalResponse(
         String nom,
         String photoUrl,
         LocalDate dateNaissance,
+        UUID mereId,
+        String pereIdentifiant,
         String statut
 ) {
 
@@ -27,6 +29,8 @@ public record AnimalResponse(
                 animal.getNom(),
                 animal.getPhotoUrl(),
                 animal.getDateNaissance(),
+                animal.getMereId(),
+                animal.getPereIdentifiant(),
                 animal.getStatut().name()
         );
     }

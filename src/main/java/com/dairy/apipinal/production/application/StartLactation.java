@@ -41,17 +41,20 @@ public class StartLactation {
             );
         }
 
-        if (lactationRepository
-                .existsByAnimalIdAndTenantIdAndStatut(
-                        command.animalId(),
-                        command.tenantId(),
-                        com.dairy.apipinal.production.domain.StatutLactation.EN_COURS
-                )) {
-
-            throw new IllegalStateException(
-                    "L'animal possède déjà une lactation en cours."
-            );
-        }
+        lactationRepository.findByAnimalIdAndTenantIdAndStatut(
+                command.animalId(),
+                command.tenantId(),
+                com.dairy.apipinal.production.domain.StatutLactation.EN_COURS
+        ).ifPresent(activeLactation -> {
+            // Auto-close the previous lactation on the day before the new calving
+            // Or on the same day if the new calving is today
+            LocalDate dateFin = command.dateDebut().minusDays(1);
+            if (dateFin.isBefore(activeLactation.getDateDebut())) {
+                dateFin = activeLactation.getDateDebut();
+            }
+            activeLactation.terminer(dateFin, command.actorId());
+            lactationRepository.save(activeLactation);
+        });
 
         Lactation lactation = new Lactation(
                 command.tenantId(),

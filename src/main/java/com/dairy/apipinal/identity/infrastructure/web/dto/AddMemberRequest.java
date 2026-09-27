@@ -10,6 +10,10 @@ public record AddMemberRequest(
         @Size(max = 20)
         String telephone,
 
+        @NotBlank
+        @Size(max = 240)
+        String nomComplet,
+
         @NotNull
         RoleExploitation role
 ) {}

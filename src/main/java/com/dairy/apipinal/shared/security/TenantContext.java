@@ -6,5 +6,9 @@ public interface TenantContext {
 
     UUID currentTenantId();
 
+    UUID currentExploitationId();
+
     UUID currentUserId();
+
+    String currentRole();
 }

@@ -15,7 +15,7 @@ class JwtTokenProviderTest {
     @BeforeEach
     void setUp() {
         jwtTokenProvider = new JwtTokenProvider(
-                "my-super-secret-key-for-development-only-min-32-chars!!",
+                UUID.randomUUID().toString(),
                 900,   // 15 minutes
                 604800 // 7 jours
         );
@@ -55,7 +55,7 @@ class JwtTokenProviderTest {
     @Test
     void shouldRejectTokenSignedWithDifferentSecret() {
         JwtTokenProvider otherProvider = new JwtTokenProvider(
-                "une-autre-cle-secrete-de-32-caracteres-minimum!!",
+                UUID.randomUUID().toString(),
                 900, 604800
         );
 

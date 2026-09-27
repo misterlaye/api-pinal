@@ -39,6 +39,12 @@ public class Animal {
     @Column(name = "date_naissance")
     private LocalDate dateNaissance;
 
+    @Column(name = "mere_id")
+    private UUID mereId;
+
+    @Column(name = "pere_identifiant", length = 100)
+    private String pereIdentifiant;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatutAnimal statut;
@@ -70,6 +76,8 @@ public class Animal {
             String nom,
             String photoUrl,
             LocalDate dateNaissance,
+            UUID mereId,
+            String pereIdentifiant,
             UUID actorId
     ) {
         this.tenantId = tenantId;
@@ -79,6 +87,8 @@ public class Animal {
         this.nom = nom;
         this.photoUrl = photoUrl;
         this.dateNaissance = dateNaissance;
+        this.mereId = mereId;
+        this.pereIdentifiant = pereIdentifiant;
         this.statut = StatutAnimal.ACTIF;
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -95,6 +105,8 @@ public class Animal {
             String nom,
             String photoUrl,
             LocalDate dateNaissance,
+            UUID mereId,
+            String pereIdentifiant,
             UUID actorId
     ) {
         ensureEditable();
@@ -104,6 +116,8 @@ public class Animal {
         this.nom = nom;
         this.photoUrl = photoUrl;
         this.dateNaissance = dateNaissance;
+        this.mereId = mereId;
+        this.pereIdentifiant = pereIdentifiant;
 
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = actorId;
@@ -165,5 +179,13 @@ public class Animal {
 
     public StatutAnimal getStatut() {
         return statut;
+    }
+
+    public UUID getMereId() {
+        return mereId;
+    }
+
+    public String getPereIdentifiant() {
+        return pereIdentifiant;
     }
 }

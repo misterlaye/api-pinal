@@ -24,6 +24,9 @@ public class Utilisateur {
     @Column(nullable = false, length = 120)
     private String prenom;
 
+    @Column(name = "code_pin", length = 6)
+    private String codePin;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatutUtilisateur statut;
@@ -62,6 +65,7 @@ public class Utilisateur {
         this.nom = nom;
         this.prenom = prenom;
         this.statut = StatutUtilisateur.ACTIF;
+        this.codePin = String.format("%06d", new java.util.Random().nextInt(999999)); // Génération automatique du code PIN
 
         OffsetDateTime now = OffsetDateTime.now();
         this.createdAt = now;
@@ -86,6 +90,16 @@ public class Utilisateur {
 
     public String getPrenom() {
         return prenom;
+    }
+
+    public String getCodePin() {
+        return codePin;
+    }
+
+    public void generateCodePin() {
+        if (this.codePin == null || this.codePin.isBlank()) {
+            this.codePin = String.format("%06d", new java.util.Random().nextInt(999999));
+        }
     }
 
     public StatutUtilisateur getStatut() {

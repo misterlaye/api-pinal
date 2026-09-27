@@ -37,7 +37,6 @@ class OtpServiceTest {
     void setUp() {
         otpService = new OtpService(otpCodeRepository, smsProvider, 300, 5, 6);
     }
-
     @Test
     void shouldGenerateAndSendOtp() {
         when(otpCodeRepository.save(any(OtpCode.class))).thenAnswer(i -> i.getArgument(0));
@@ -138,4 +137,3 @@ class OtpServiceTest {
         }
     }
 }
-

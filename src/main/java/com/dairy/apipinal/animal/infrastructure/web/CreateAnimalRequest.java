@@ -28,5 +28,10 @@ public record CreateAnimalRequest(
         String photoUrl,
 
         @Past
-        LocalDate dateNaissance
+        LocalDate dateNaissance,
+
+        UUID mereId,
+
+        @Size(max = 100)
+        String pereIdentifiant
 ) {}

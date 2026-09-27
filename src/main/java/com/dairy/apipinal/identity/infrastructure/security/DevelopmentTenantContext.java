@@ -22,7 +22,17 @@ public class DevelopmentTenantContext implements TenantContext {
     }
 
     @Override
+    public UUID currentExploitationId() {
+        return TENANT_ID;
+    }
+
+    @Override
     public UUID currentUserId() {
         return USER_ID;
+    }
+
+    @Override
+    public String currentRole() {
+        return "PROPRIETAIRE";
     }
 }

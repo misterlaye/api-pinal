@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @Service
 @Transactional(readOnly = true)
@@ -19,13 +20,16 @@ public class IdentityQueriesImpl implements IdentityQueries {
 
     private final MembershipRepository membershipRepository;
     private final ExploitationRepository exploitationRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public IdentityQueriesImpl(
             MembershipRepository membershipRepository,
-            ExploitationRepository exploitationRepository
+            ExploitationRepository exploitationRepository,
+            JdbcTemplate jdbcTemplate
     ) {
         this.membershipRepository = membershipRepository;
         this.exploitationRepository = exploitationRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -35,13 +39,27 @@ public class IdentityQueriesImpl implements IdentityQueries {
         return memberships.stream()
                 .map(membership -> exploitationRepository.findById(membership.getExploitationId())
                         .filter(Exploitation::isActif)
-                        .map(exp -> new ExploitationInfo(
-                                exp.getId(),
-                                exp.getTenantId(),
-                                exp.getNom(),
-                                exp.getLocalite(),
-                                membership.getRole().name()
-                        )))
+                        .map(exp -> {
+                                Integer count = null;
+                                try {
+                                    count = jdbcTemplate.queryForObject(
+                                            "SELECT COUNT(*) FROM animal WHERE exploitation_id = ? AND statut = 'ACTIF'",
+                                            Integer.class, exp.getId()
+                                    );
+                                } catch (Exception e) {}
+                                int animalCount = count != null ? count : 0;
+                                String status = "Bon";
+
+                                return new ExploitationInfo(
+                                        exp.getId(),
+                                        exp.getTenantId(),
+                                        exp.getNom(),
+                                        exp.getLocalite(),
+                                        membership.getRole(),
+                                        animalCount,
+                                        status
+                                );
+                        }))
                 .flatMap(Optional::stream)
                 .toList();
     }
@@ -57,13 +75,27 @@ public class IdentityQueriesImpl implements IdentityQueries {
                     .findByUtilisateurIdAndExploitationId(utilisateurId, expId)
                     .flatMap(membership -> exploitationRepository.findById(expId)
                             .filter(Exploitation::isActif)
-                            .map(exp -> new ExploitationInfo(
-                                    exp.getId(),
-                                    exp.getTenantId(),
-                                    exp.getNom(),
-                                    exp.getLocalite(),
-                                    membership.getRole().name()
-                            )));
+                            .map(exp -> {
+                                    Integer count = null;
+                                    try {
+                                        count = jdbcTemplate.queryForObject(
+                                                "SELECT COUNT(*) FROM animal WHERE exploitation_id = ? AND statut = 'ACTIF'",
+                                                Integer.class, exp.getId()
+                                        );
+                                    } catch (Exception e) {}
+                                    int animalCount = count != null ? count : 0;
+                                    String status = "Bon";
+
+                                    return new ExploitationInfo(
+                                            exp.getId(),
+                                            exp.getTenantId(),
+                                            exp.getNom(),
+                                            exp.getLocalite(),
+                                            membership.getRole(),
+                                            animalCount,
+                                            status
+                                    );
+                            }));
         }
 
         return getUserExploitations(utilisateurId).stream().findFirst();

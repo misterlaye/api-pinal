@@ -74,6 +74,24 @@ public class AuthService {
     }
 
     /**
+     * Vérifie le PIN permanent (Ouvrier/Travailleur) et retourne les tokens.
+     */
+    public AuthResponse verifyPin(String telephone, String pin) {
+        if (pin == null || pin.isBlank()) {
+            throw new IllegalArgumentException("Le code PIN est obligatoire.");
+        }
+
+        Utilisateur user = utilisateurRepository.findByTelephone(telephone)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable."));
+
+        if (!pin.equals(user.getCodePin())) {
+            throw new IllegalArgumentException("Code PIN invalide.");
+        }
+
+        return generateTokens(user.getId());
+    }
+
+    /**
      * Rafraîchit les tokens en vérifiant le refresh token existant.
      * Applique la rotation : l'ancien refresh token est révoqué, un nouveau est émis.
      */

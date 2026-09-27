@@ -56,6 +56,8 @@ public class UpdateAnimal {
                 command.nom(),
                 command.photoUrl(),
                 command.dateNaissance(),
+                command.mereId(),
+                command.pereIdentifiant(),
                 command.actorId()
         );
 
@@ -70,6 +72,8 @@ public class UpdateAnimal {
             String nom,
             String photoUrl,
             LocalDate dateNaissance,
+            UUID mereId,
+            String pereIdentifiant,
             UUID actorId
     ) {
     }
