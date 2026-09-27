@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -18,7 +17,6 @@ import java.util.UUID;
 
 @Component
 @Primary
-@Profile("!dev")
 public class JwtTenantContext implements TenantContext {
 
     private static final String EXPLOITATION_HEADER = "X-Exploitation-ID";
@@ -32,26 +30,32 @@ public class JwtTenantContext implements TenantContext {
     @Override
     public UUID currentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            String sub = jwt.getSubject();
-            if (sub != null) {
-                try {
-                    return UUID.fromString(sub);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalStateException("Le subject du JWT n'est pas un UUID valide : " + sub);
-                }
-            }
+        if (authentication != null && authentication.getPrincipal() instanceof UUID userId) {
+            return userId;
         }
         throw new IllegalStateException("Aucun utilisateur authentifié ou jeton JWT manquant.");
     }
 
     @Override
     public UUID currentTenantId() {
+        return getExploitationInfo().tenantId();
+    }
+
+    @Override
+    public UUID currentExploitationId() {
+        return getExploitationInfo().exploitationId();
+    }
+
+    @Override
+    public String currentRole() {
+        return getExploitationInfo().role().name();
+    }
+
+    private ExploitationInfo getExploitationInfo() {
         UUID userId = currentUserId();
         Optional<UUID> requestedExploitationId = getRequestedExploitationIdFromHeader();
 
         return identityQueries.getActiveExploitationForUser(userId, requestedExploitationId)
-                .map(ExploitationInfo::tenantId)
                 .orElseThrow(() -> new IllegalStateException(
                         "L'utilisateur " + userId + " n'a accès à aucune exploitation active."
                 ));
