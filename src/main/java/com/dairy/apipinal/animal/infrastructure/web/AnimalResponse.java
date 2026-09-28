@@ -16,6 +16,7 @@ public record AnimalResponse(
         LocalDate dateNaissance,
         UUID mereId,
         String pereIdentifiant,
+        com.dairy.apipinal.animal.domain.SexeAnimal sexe,
         String statut
 ) {
 
@@ -31,6 +32,7 @@ public record AnimalResponse(
                 animal.getDateNaissance(),
                 animal.getMereId(),
                 animal.getPereIdentifiant(),
+                animal.getSexe(),
                 animal.getStatut().name()
         );
     }

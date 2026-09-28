@@ -61,6 +61,7 @@ class AnimalIntegrationTest {
                         raceId,
                         "DI001",
                         "Diouma",
+                        com.dairy.apipinal.animal.domain.SexeAnimal.FEMELLE,
                         null,
                         null,
                         null,

@@ -71,18 +71,27 @@ public class DashboardQueriesImpl implements DashboardQueries {
         );
         if (totalAnimals == null) totalAnimals = 0L;
 
-        Long vachesLaitieres = jdbcTemplate.queryForObject(
-                "SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ?", 
-                Long.class, 
-                tenantId, 
+        Long vachesEnLactation = jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT l.animal_id) FROM lactation l JOIN animal a ON l.animal_id = a.id WHERE a.statut = 'ACTIF' AND l.statut = 'EN_COURS' AND l.tenant_id = ? AND l.exploitation_id = ?",
+                Long.class,
+                tenantId,
                 exploitationId
         );
-        if (vachesLaitieres == null) vachesLaitieres = 0L;
-        
-        Long vachesTaries = 0L; // Simplified
+        if (vachesEnLactation == null) vachesEnLactation = 0L;
+
+        // Vaches taries: Femelles actives qui ont déjà eu au moins une lactation, mais n'en ont pas en cours
+        Long vachesTaries = jdbcTemplate.queryForObject(
+                "SELECT COUNT(id) FROM animal a WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ? " +
+                "AND EXISTS (SELECT 1 FROM lactation l WHERE l.animal_id = a.id) " +
+                "AND NOT EXISTS (SELECT 1 FROM lactation l2 WHERE l2.animal_id = a.id AND l2.statut = 'EN_COURS')",
+                Long.class,
+                tenantId,
+                exploitationId
+        );
+        if (vachesTaries == null) vachesTaries = 0L;
 
         DashboardSummary.HerdSummary troupeau = new DashboardSummary.HerdSummary(
-                totalAnimals, vachesLaitieres, vachesTaries
+                totalAnimals, vachesEnLactation, vachesTaries
         );
 
         Optional<ExploitationFeedCostReference> feedCost30J = nutritionQueries.calculateTotalFeedCost(
@@ -91,7 +100,7 @@ public class DashboardQueriesImpl implements DashboardQueries {
         );
 
         BigDecimal totalFeedCost30J = feedCost30J.map(ExploitationFeedCostReference::coutAlimentation).orElse(BigDecimal.ZERO);
-        BigDecimal prixUnitaireLait;
+        BigDecimal prixUnitaireLait = null;
         try {
             prixUnitaireLait = jdbcTemplate.queryForObject(
                     "SELECT prix_par_litre FROM prix_vente_lait WHERE tenant_id = ? AND date_debut <= CURRENT_DATE AND (date_fin IS NULL OR date_fin >= CURRENT_DATE) ORDER BY date_debut DESC LIMIT 1",
@@ -99,11 +108,16 @@ public class DashboardQueriesImpl implements DashboardQueries {
                     tenantId
             );
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            prixUnitaireLait = new BigDecimal("450.00");
+            prixUnitaireLait = null;
         }
 
-        BigDecimal caEstime30J = last30DaysProd.multiply(prixUnitaireLait);
-        BigDecimal margeEstimee30J = caEstime30J.subtract(totalFeedCost30J);
+        BigDecimal caEstime30J = null;
+        BigDecimal margeEstimee30J = null;
+
+        if (prixUnitaireLait != null) {
+            caEstime30J = last30DaysProd.multiply(prixUnitaireLait);
+            margeEstimee30J = caEstime30J.subtract(totalFeedCost30J);
+        }
 
         DashboardSummary.FinancialSummary finance = new DashboardSummary.FinancialSummary(
                 prixUnitaireLait,

@@ -159,20 +159,7 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
             if (dbLoc != null && !dbLoc.isBlank()) localite = dbLoc;
         } catch (Exception ignored) {}
 
-        int month = LocalDate.now().getMonthValue();
-        boolean isSaisonPluie = month >= 6 && month <= 10;
-        
-        int temp = isSaisonPluie ? 34 : 30;
-        int hum = isSaisonPluie ? 75 : 45;
-        String season = isSaisonPluie ? "SAISON DES PLUIES" : "SAISON SÈCHE";
-        String riskLevel = isSaisonPluie ? "Élevé" : "Faible à Modéré";
-        List<String> recommendations = isSaisonPluie ? 
-                List.of("Vérifier la ventilation des abris", "Réduire la densité", "Fournir de l'eau fraîche à volonté") : 
-                List.of("Surveiller l'abreuvement", "Garantir des zones d'ombre");
-
-        HealthDashboardSummary.ThermalStress thermalStress = new HealthDashboardSummary.ThermalStress(
-                temp, season, localite, riskLevel, hum, recommendations
-        );
+        HealthDashboardSummary.ThermalStress thermalStress = null;
 
         return new HealthDashboardSummary(kpis, alerts, history, vaccinations, thermalStress);
     }

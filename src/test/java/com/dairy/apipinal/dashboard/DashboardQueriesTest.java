@@ -79,11 +79,20 @@ class DashboardQueriesTest {
         )).thenReturn(12L);
 
         when(jdbcTemplate.queryForObject(
-                eq("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ?"),
+                eq("SELECT COUNT(DISTINCT l.animal_id) FROM lactation l JOIN animal a ON l.animal_id = a.id WHERE a.statut = 'ACTIF' AND l.statut = 'EN_COURS' AND l.tenant_id = ? AND l.exploitation_id = ?"),
                 eq(Long.class),
                 eq(testTenant),
                 eq(testExploitation)
-        )).thenReturn(12L);
+        )).thenReturn(10L);
+
+        when(jdbcTemplate.queryForObject(
+                eq("SELECT COUNT(id) FROM animal a WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ? " +
+                "AND EXISTS (SELECT 1 FROM lactation l WHERE l.animal_id = a.id) " +
+                "AND NOT EXISTS (SELECT 1 FROM lactation l2 WHERE l2.animal_id = a.id AND l2.statut = 'EN_COURS')"),
+                eq(Long.class),
+                eq(testTenant),
+                eq(testExploitation)
+        )).thenReturn(2L);
 
         // =========================================================
         // Nutrition
@@ -98,6 +107,12 @@ class DashboardQueriesTest {
 
         when(nutritionQueries.calculateTotalFeedCost(any(), any()))
                 .thenReturn(Optional.of(feedCostRef));
+
+        when(jdbcTemplate.queryForObject(
+                eq("SELECT prix_par_litre FROM prix_vente_lait WHERE tenant_id = ? AND date_debut <= CURRENT_DATE AND (date_fin IS NULL OR date_fin >= CURRENT_DATE) ORDER BY date_debut DESC LIMIT 1"),
+                eq(BigDecimal.class),
+                eq(testTenant)
+        )).thenReturn(new BigDecimal("450.00"));
 
         // =========================================================
         // Context
@@ -146,12 +161,12 @@ class DashboardQueriesTest {
         );
 
         assertEquals(
-                12L,
+                10L,
                 summary.troupeau().vachesEnLactation()
         );
 
         assertEquals(
-                0L,
+                2L, // 12 vaches laitières - 10 en lactation
                 summary.troupeau().vachesTaries()
         );
 

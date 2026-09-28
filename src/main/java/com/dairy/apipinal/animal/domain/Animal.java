@@ -33,6 +33,10 @@ public class Animal {
     @Column(nullable = false, length = 150)
     private String nom;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private SexeAnimal sexe;
+
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
@@ -74,6 +78,7 @@ public class Animal {
             UUID raceId,
             String identifiant,
             String nom,
+            SexeAnimal sexe,
             String photoUrl,
             LocalDate dateNaissance,
             UUID mereId,
@@ -85,6 +90,7 @@ public class Animal {
         this.raceId = raceId;
         this.identifiant = identifiant;
         this.nom = nom;
+        this.sexe = sexe != null ? sexe : SexeAnimal.FEMELLE;
         this.photoUrl = photoUrl;
         this.dateNaissance = dateNaissance;
         this.mereId = mereId;
@@ -103,6 +109,7 @@ public class Animal {
             UUID raceId,
             String identifiant,
             String nom,
+            SexeAnimal sexe,
             String photoUrl,
             LocalDate dateNaissance,
             UUID mereId,
@@ -114,6 +121,7 @@ public class Animal {
         this.raceId = raceId;
         this.identifiant = identifiant;
         this.nom = nom;
+        this.sexe = sexe != null ? sexe : SexeAnimal.FEMELLE;
         this.photoUrl = photoUrl;
         this.dateNaissance = dateNaissance;
         this.mereId = mereId;
@@ -167,6 +175,10 @@ public class Animal {
 
     public String getNom() {
         return nom;
+    }
+
+    public SexeAnimal getSexe() {
+        return sexe;
     }
 
     public String getPhotoUrl() {

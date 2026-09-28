@@ -33,5 +33,8 @@ public record CreateAnimalRequest(
         UUID mereId,
 
         @Size(max = 100)
-        String pereIdentifiant
+        String pereIdentifiant,
+
+        @NotNull
+        com.dairy.apipinal.animal.domain.SexeAnimal sexe
 ) {}

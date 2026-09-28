@@ -28,7 +28,13 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
         );
         int totalAnimaux = totalAnimauxObj != null ? totalAnimauxObj : 0;
 
-        int animauxASurveiller = 0; // Sera implémenté avec le module Santé
+        Integer animauxASurveillerObj = jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT a.id) FROM evenement_sanitaire es " +
+                "JOIN animal a ON a.id = es.animal_id " +
+                "WHERE es.date_fin IS NULL AND a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF'",
+                Integer.class, tenantId, exploitationId
+        );
+        int animauxASurveiller = animauxASurveillerObj != null ? animauxASurveillerObj : 0;
 
         Integer traitesMatin = jdbcTemplate.queryForObject(
                 "SELECT COUNT(DISTINCT a.id) FROM animal a " +
