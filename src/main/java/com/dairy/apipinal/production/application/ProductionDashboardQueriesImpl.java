@@ -20,13 +20,14 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
 
     @Override
     public ProductionDashboardSummary getDashboardSummary(UUID tenantId, UUID exploitationId) {
+
         // Total production (7 days)
         Double totalProd = jdbcTemplate.queryForObject(
                 "SELECT SUM(t.quantite_kg) FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
                 "JOIN animal a ON a.id = l.animal_id " +
-                "WHERE a.exploitation_id = ? AND t.date_heure >= CURRENT_DATE - INTERVAL '7 days'",
-                Double.class, exploitationId
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND t.date_heure >= CURRENT_DATE - INTERVAL '7 days'",
+                Double.class, tenantId, exploitationId
         );
         if (totalProd == null) totalProd = 0.0;
 
@@ -35,8 +36,8 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
                 "SELECT AVG(t.quantite_kg) FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
                 "JOIN animal a ON a.id = l.animal_id " +
-                "WHERE a.exploitation_id = ? AND t.date_heure >= CURRENT_DATE - INTERVAL '7 days'",
-                Double.class, exploitationId
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND t.date_heure >= CURRENT_DATE - INTERVAL '7 days'",
+                Double.class, tenantId, exploitationId
         );
         if (avgPerAnimal == null) avgPerAnimal = 0.0;
 
@@ -48,17 +49,17 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
                     "FROM animal a " +
                     "JOIN lactation l ON l.animal_id = a.id " +
                     "JOIN traite t ON t.lactation_id = l.id " +
-                    "WHERE a.exploitation_id = ? AND t.date_heure >= CURRENT_DATE - INTERVAL '7 days' " +
+                    "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND t.date_heure >= CURRENT_DATE - INTERVAL '7 days' " +
                     "GROUP BY a.id, a.nom ORDER BY total DESC LIMIT 1",
                     (rs, rowNum) -> new ProductionDashboardSummary.BestProducer(
                             rs.getString("name"),
-                            "https://loremflickr.com/150/150/cow?lock=1",
+                            "../../../assets/images/default_cow.jpg",
                             rs.getDouble("total") + " L/7j"
                     ),
-                    exploitationId
+                    tenantId, exploitationId
             );
         } catch (Exception e) {
-            bestProducer = new ProductionDashboardSummary.BestProducer("-", "https://loremflickr.com/150/150/cow?lock=1", "0 L");
+            bestProducer = new ProductionDashboardSummary.BestProducer("-", "../../../assets/images/default_cow.jpg", "0 L");
         }
 
         ProductionDashboardSummary.Kpis kpis = new ProductionDashboardSummary.Kpis(
@@ -81,8 +82,8 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
                     "SELECT SUM(t.quantite_kg) FROM traite t " +
                     "JOIN lactation l ON l.id = t.lactation_id " +
                     "JOIN animal a ON a.id = l.animal_id " +
-                    "WHERE a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE - INTERVAL '" + daysAgo + " days'",
-                    Double.class, exploitationId
+                    "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE - INTERVAL '" + daysAgo + " days'",
+                    Double.class, tenantId, exploitationId
             );
             currentWeek.add(dayTotal != null ? dayTotal : 0.0);
 
@@ -90,8 +91,8 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
                     "SELECT SUM(t.quantite_kg) FROM traite t " +
                     "JOIN lactation l ON l.id = t.lactation_id " +
                     "JOIN animal a ON a.id = l.animal_id " +
-                    "WHERE a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE - INTERVAL '" + (daysAgo + 7) + " days'",
-                    Double.class, exploitationId
+                    "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE - INTERVAL '" + (daysAgo + 7) + " days'",
+                    Double.class, tenantId, exploitationId
             );
             previousWeek.add(prevDayTotal != null ? prevDayTotal : 0.0);
         }
@@ -101,34 +102,37 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
         );
 
         List<ProductionDashboardSummary.AnimalProduction> animalProduction = jdbcTemplate.query(
-                "SELECT a.id, a.nom, 'Race Inconnue' as race, SUM(CASE WHEN t.type = 'MATIN' THEN t.quantite_kg ELSE 0 END) as matin, " +
+                "SELECT a.id, a.nom, r.libelle as race, SUM(CASE WHEN t.type = 'MATIN' THEN t.quantite_kg ELSE 0 END) as matin, " +
                 "SUM(CASE WHEN t.type = 'SOIR' THEN t.quantite_kg ELSE 0 END) as soir, " +
                 "SUM(t.quantite_kg) as total " +
                 "FROM animal a " +
+                "JOIN race r ON a.race_id = r.id " +
                 "JOIN lactation l ON l.animal_id = a.id " +
                 "JOIN traite t ON t.lactation_id = l.id " +
-                "WHERE a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE " +
-                "GROUP BY a.id, a.nom ORDER BY total DESC",
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
+                "GROUP BY a.id, a.nom, r.libelle ORDER BY total DESC",
                 (rs, rowNum) -> new ProductionDashboardSummary.AnimalProduction(
                         UUID.fromString(rs.getString("id")),
                         rs.getString("nom"),
                         rs.getString("race"),
-                        "https://loremflickr.com/150/150/cow?lock=1",
+                        "../../../assets/images/default_cow.jpg",
                         rs.getDouble("matin"),
                         rs.getDouble("soir"),
                         rs.getDouble("total"),
                         0.0,
                         "NORMAL"
                 ),
-                exploitationId
+                tenantId, exploitationId
         );
 
         List<ProductionDashboardSummary.HistoryEvent> history = jdbcTemplate.query(
-                "SELECT t.id, t.date_heure, t.type, t.quantite_kg, 1 as cowsMilked " +
+                "SELECT t.id, t.date_heure, t.type, t.quantite_kg, 1 as cowsMilked, " +
+                "COALESCE(u.prenom || ' ' || u.nom, 'Éleveur / Ouvrier') as worker " +
                 "FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
                 "JOIN animal a ON a.id = l.animal_id " +
-                "WHERE a.exploitation_id = ? " +
+                "LEFT JOIN utilisateur u ON t.auteur_id = u.id " +
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? " +
                 "ORDER BY t.date_heure DESC LIMIT 5",
                 (rs, rowNum) -> new ProductionDashboardSummary.HistoryEvent(
                         UUID.fromString(rs.getString("id")),
@@ -136,9 +140,9 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
                         rs.getString("type"),
                         rs.getDouble("quantite_kg"),
                         rs.getInt("cowsMilked"),
-                        "Éleveur / Ouvrier"
+                        rs.getString("worker")
                 ),
-                exploitationId
+                tenantId, exploitationId
         );
 
         return new ProductionDashboardSummary(kpis, chartData, animalProduction, history);

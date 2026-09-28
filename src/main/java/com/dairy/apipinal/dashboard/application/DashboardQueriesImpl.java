@@ -5,6 +5,7 @@ import com.dairy.apipinal.dashboard.api.DashboardSummary;
 import com.dairy.apipinal.nutrition.api.ExploitationFeedCostReference;
 import com.dairy.apipinal.nutrition.api.NutritionQueries;
 import com.dairy.apipinal.production.api.ProductionQueries;
+import com.dairy.apipinal.shared.security.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +22,18 @@ public class DashboardQueriesImpl implements DashboardQueries {
     private final ProductionQueries productionQueries;
     private final NutritionQueries nutritionQueries;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final TenantContext tenantContext;
 
     public DashboardQueriesImpl(
             ProductionQueries productionQueries,
             NutritionQueries nutritionQueries,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+            TenantContext tenantContext
     ) {
         this.productionQueries = productionQueries;
         this.nutritionQueries = nutritionQueries;
         this.jdbcTemplate = jdbcTemplate;
+        this.tenantContext = tenantContext;
     }
 
     @Override
@@ -56,10 +60,25 @@ public class DashboardQueriesImpl implements DashboardQueries {
                 avgMoyenneVache
         );
 
-        Long totalAnimals = jdbcTemplate.queryForObject("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF'", Long.class);
+        java.util.UUID tenantId = tenantContext.currentTenantId();
+        java.util.UUID exploitationId = tenantContext.currentExploitationId();
+
+        Long totalAnimals = jdbcTemplate.queryForObject(
+                "SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND tenant_id = ? AND exploitation_id = ?", 
+                Long.class, 
+                tenantId, 
+                exploitationId
+        );
         if (totalAnimals == null) totalAnimals = 0L;
-        Long vachesLaitieres = jdbcTemplate.queryForObject("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF'", Long.class); // Simplified assumption for dairy cows
+
+        Long vachesLaitieres = jdbcTemplate.queryForObject(
+                "SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ?", 
+                Long.class, 
+                tenantId, 
+                exploitationId
+        );
         if (vachesLaitieres == null) vachesLaitieres = 0L;
+        
         Long vachesTaries = 0L; // Simplified
 
         DashboardSummary.HerdSummary troupeau = new DashboardSummary.HerdSummary(
@@ -72,7 +91,17 @@ public class DashboardQueriesImpl implements DashboardQueries {
         );
 
         BigDecimal totalFeedCost30J = feedCost30J.map(ExploitationFeedCostReference::coutAlimentation).orElse(BigDecimal.ZERO);
-        BigDecimal prixUnitaireLait = new BigDecimal("450.00");
+        BigDecimal prixUnitaireLait;
+        try {
+            prixUnitaireLait = jdbcTemplate.queryForObject(
+                    "SELECT prix_par_litre FROM prix_vente_lait WHERE tenant_id = ? AND date_debut <= CURRENT_DATE AND (date_fin IS NULL OR date_fin >= CURRENT_DATE) ORDER BY date_debut DESC LIMIT 1",
+                    BigDecimal.class,
+                    tenantId
+            );
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            prixUnitaireLait = new BigDecimal("450.00");
+        }
+
         BigDecimal caEstime30J = last30DaysProd.multiply(prixUnitaireLait);
         BigDecimal margeEstimee30J = caEstime30J.subtract(totalFeedCost30J);
 

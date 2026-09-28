@@ -43,8 +43,8 @@ public class IdentityQueriesImpl implements IdentityQueries {
                                 Integer count = null;
                                 try {
                                     count = jdbcTemplate.queryForObject(
-                                            "SELECT COUNT(*) FROM animal WHERE exploitation_id = ? AND statut = 'ACTIF'",
-                                            Integer.class, exp.getId()
+                                            "SELECT COUNT(*) FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND statut = 'ACTIF'",
+                                            Integer.class, exp.getTenantId(), exp.getId()
                                     );
                                 } catch (Exception e) {}
                                 int animalCount = count != null ? count : 0;
@@ -79,8 +79,8 @@ public class IdentityQueriesImpl implements IdentityQueries {
                                     Integer count = null;
                                     try {
                                         count = jdbcTemplate.queryForObject(
-                                                "SELECT COUNT(*) FROM animal WHERE exploitation_id = ? AND statut = 'ACTIF'",
-                                                Integer.class, exp.getId()
+                                                "SELECT COUNT(*) FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND statut = 'ACTIF'",
+                                                Integer.class, exp.getTenantId(), exp.getId()
                                         );
                                     } catch (Exception e) {}
                                     int animalCount = count != null ? count : 0;

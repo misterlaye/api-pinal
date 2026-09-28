@@ -55,7 +55,8 @@ public interface WorkerHubQueries {
             String lastMilkingVolume,
             List<WorkerHistoryItem> recentMilkings,
             @com.fasterxml.jackson.annotation.JsonProperty("isLactating")
-            boolean isLactating
+            boolean isLactating,
+            Integer joursLactation
     ) {}
 
     record WorkerHistoryItem(

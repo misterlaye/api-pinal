@@ -45,11 +45,12 @@ public record HealthDashboardSummary(
     ) {}
 
     public record Vaccination(
-            UUID animalId,
-            String animalName,
+            UUID id,
+            String name,
             String vaccine,
+            String avatar,
             String date,
-            String status
+            boolean isUrgent
     ) {}
 
     public record ThermalStress(

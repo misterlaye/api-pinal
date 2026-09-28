@@ -23,8 +23,8 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
     public WorkerHomeData getWorkerHomeData(UUID tenantId, UUID exploitationId) {
         // Mock data logic powered by SQL for the worker hub
         Integer totalAnimauxObj = jdbcTemplate.queryForObject(
-                "SELECT COUNT(id) FROM animal WHERE exploitation_id = ? AND statut = 'ACTIF'",
-                Integer.class, exploitationId
+                "SELECT COUNT(id) FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND statut = 'ACTIF'",
+                Integer.class, tenantId, exploitationId
         );
         int totalAnimaux = totalAnimauxObj != null ? totalAnimauxObj : 0;
 
@@ -34,9 +34,9 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                 "SELECT COUNT(DISTINCT a.id) FROM animal a " +
                 "JOIN lactation l ON l.animal_id = a.id " +
                 "JOIN traite t ON t.lactation_id = l.id " +
-                "WHERE a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
                 "AND t.type = 'MATIN'",
-                Integer.class, exploitationId
+                Integer.class, tenantId, exploitationId
         );
         if (traitesMatin == null) traitesMatin = 0;
 
@@ -44,9 +44,9 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                 "SELECT SUM(t.quantite_kg) FROM animal a " +
                 "JOIN lactation l ON l.animal_id = a.id " +
                 "JOIN traite t ON t.lactation_id = l.id " +
-                "WHERE a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
                 "AND t.type = 'MATIN'",
-                BigDecimal.class, exploitationId
+                BigDecimal.class, tenantId, exploitationId
         );
         double volMatin = volMatinBd != null ? volMatinBd.doubleValue() : 0.0;
 
@@ -55,7 +55,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                 "FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
                 "JOIN animal a ON a.id = l.animal_id " +
-                "WHERE a.exploitation_id = ? " +
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? " +
                 "ORDER BY t.date_heure DESC LIMIT 5",
                 (rs, rowNum) -> {
                     OffsetDateTime dt = rs.getObject("date_heure", OffsetDateTime.class);
@@ -69,12 +69,12 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                         rs.getDouble("quantite_kg") + " L"
                     );
                 },
-                exploitationId
+                tenantId, exploitationId
         );
 
         Integer totalLactationAnimaux = jdbcTemplate.queryForObject(
-                "SELECT COUNT(DISTINCT animal_id) FROM lactation WHERE date_fin IS NULL AND animal_id IN (SELECT id FROM animal WHERE exploitation_id = ?)",
-                Integer.class, exploitationId
+                "SELECT COUNT(DISTINCT animal_id) FROM lactation WHERE date_fin IS NULL AND tenant_id = ? AND animal_id IN (SELECT id FROM animal WHERE tenant_id = ? AND exploitation_id = ?)",
+                Integer.class, tenantId, tenantId, exploitationId
         );
         if (totalLactationAnimaux == null) totalLactationAnimaux = 0;
 
@@ -89,7 +89,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                 "(SELECT t.quantite_kg FROM traite t JOIN lactation l ON l.id = t.lactation_id WHERE l.animal_id = a.id ORDER BY t.date_heure DESC LIMIT 1) as last_milking_vol, " +
                 "EXISTS (SELECT 1 FROM lactation l WHERE l.animal_id = a.id AND l.statut = 'EN_COURS') as is_lactating " +
                 "FROM animal a " +
-                "WHERE a.exploitation_id = ? AND a.statut = 'ACTIF'",
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF'",
                 (rs, rowNum) -> {
                     OffsetDateTime dt = rs.getObject("last_milking_time", OffsetDateTime.class);
                     String timeStr = dt != null ? dt.format(DateTimeFormatter.ofPattern("HH:mm")) : "-";
@@ -112,7 +112,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                         isLactating
                     );
                 },
-                exploitationId
+                tenantId, exploitationId
         );
     }
 
@@ -122,7 +122,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                 "SELECT t.id, t.date_heure, t.quantite_kg " +
                 "FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
-                "WHERE l.animal_id = ? " +
+                "WHERE t.tenant_id = ? AND l.animal_id = ? " +
                 "ORDER BY t.date_heure DESC LIMIT 5",
                 (rs, rowNum) -> {
                     OffsetDateTime dt = rs.getObject("date_heure", OffsetDateTime.class);
@@ -133,7 +133,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                         rs.getDouble("quantite_kg") + " L"
                     );
                 },
-                animalId
+                tenantId, animalId
         );
 
         String lastTime = history.isEmpty() ? "-" : history.get(0).time();
@@ -141,22 +141,29 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
 
         return jdbcTemplate.queryForObject(
                 "SELECT id, nom, identifiant, " +
-                "EXISTS (SELECT 1 FROM lactation l WHERE l.animal_id = animal.id AND l.statut = 'EN_COURS') as is_lactating " +
-                "FROM animal WHERE id = ?",
-                (rs, rowNum) -> new WorkerAnimalDetailData(
-                        animalId,
-                        rs.getString("nom"),
-                        rs.getString("identifiant"),
-                        "N/A",
-                        rs.getBoolean("is_lactating") ? "En Lactation" : "Tarie",
-                        "-", // Lot: Phase 4
-                        "-", // Ration: Phase 4
-                        lastTime,
-                        lastVol,
-                        history,
-                        rs.getBoolean("is_lactating")
-                ),
-                animalId
+                "EXISTS (SELECT 1 FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS') as is_lactating, " +
+                "(SELECT DATE_PART('day', CURRENT_DATE - CAST(l.date_debut AS DATE)) FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS' LIMIT 1) as jours_lactation, " +
+                "EXISTS (SELECT 1 FROM ration r WHERE r.tenant_id = ? AND r.animal_id = animal.id AND r.statut = 'ACTIVE') as has_ration " +
+                "FROM animal WHERE tenant_id = ? AND id = ?",
+                (rs, rowNum) -> {
+                        Number joursLact = (Number) rs.getObject("jours_lactation");
+                        boolean hasRation = rs.getBoolean("has_ration");
+                        return new WorkerAnimalDetailData(
+                                animalId,
+                                rs.getString("nom"),
+                                rs.getString("identifiant"),
+                                "N/A",
+                                rs.getBoolean("is_lactating") ? "En Lactation" : "Tarie",
+                                "Standard", // Lot (V1 - simplifié)
+                                hasRation ? "Active" : "Aucune",
+                                lastTime,
+                                lastVol,
+                                history,
+                                rs.getBoolean("is_lactating"),
+                                joursLact != null ? joursLact.intValue() : 0
+                        );
+                },
+                tenantId, tenantId, tenantId, tenantId, animalId
         );
     }
 }

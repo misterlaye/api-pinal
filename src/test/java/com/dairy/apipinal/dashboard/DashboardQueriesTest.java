@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
+import com.dairy.apipinal.shared.security.TenantContext;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -33,6 +34,9 @@ class DashboardQueriesTest {
     @Mock
     private JdbcTemplate jdbcTemplate;
 
+    @Mock
+    private TenantContext tenantContext;
+
     private DashboardQueriesImpl dashboardQueries;
 
     @BeforeEach
@@ -40,12 +44,19 @@ class DashboardQueriesTest {
         dashboardQueries = new DashboardQueriesImpl(
                 productionQueries,
                 nutritionQueries,
-                jdbcTemplate
+                jdbcTemplate,
+                tenantContext
         );
     }
 
     @Test
     void shouldReturnDashboardSummary() {
+
+        // =========================================================
+        // Context variables
+        // =========================================================
+        java.util.UUID testTenant = java.util.UUID.randomUUID();
+        java.util.UUID testExploitation = java.util.UUID.randomUUID();
 
         // =========================================================
         // Production
@@ -61,8 +72,17 @@ class DashboardQueriesTest {
         // =========================================================
 
         when(jdbcTemplate.queryForObject(
-                eq("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF'"),
-                eq(Long.class)
+                eq("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND tenant_id = ? AND exploitation_id = ?"),
+                eq(Long.class),
+                eq(testTenant),
+                eq(testExploitation)
+        )).thenReturn(12L);
+
+        when(jdbcTemplate.queryForObject(
+                eq("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ?"),
+                eq(Long.class),
+                eq(testTenant),
+                eq(testExploitation)
         )).thenReturn(12L);
 
         // =========================================================
@@ -78,6 +98,13 @@ class DashboardQueriesTest {
 
         when(nutritionQueries.calculateTotalFeedCost(any(), any()))
                 .thenReturn(Optional.of(feedCostRef));
+
+        // =========================================================
+        // Context
+        // =========================================================
+        
+        when(tenantContext.currentTenantId()).thenReturn(testTenant);
+        when(tenantContext.currentExploitationId()).thenReturn(testExploitation);
 
         // =========================================================
         // Exécution
