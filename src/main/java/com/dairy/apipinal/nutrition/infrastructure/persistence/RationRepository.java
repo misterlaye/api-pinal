@@ -89,35 +89,45 @@ public interface RationRepository
     select r
     from Ration r
     where r.tenantId = :tenantId
+      and r.exploitationId = :exploitationId
       and r.animalId = :animalId
-      and r.statut = :statut
+      and r.statut in (com.dairy.apipinal.nutrition.domain.StatutRation.ACTIVE,
+                       com.dairy.apipinal.nutrition.domain.StatutRation.TERMINEE)
       and r.dateDebut <= :date
       and (
             r.dateFin is null
             or r.dateFin >= :date
           )
     """)
-    Optional<Ration> findActiveRationAtDate(
+    Optional<Ration> findEffectiveRationAtDate(
             @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
             @Param("animalId") UUID animalId,
-            @Param("date") LocalDate date,
-            @Param("statut") StatutRation statut
+            @Param("date") LocalDate date
     );
 
     @Query("""
     select r
     from Ration r
     where r.tenantId = :tenantId
-      and r.statut = :statut
+      and r.exploitationId = :exploitationId
+      and r.statut in (com.dairy.apipinal.nutrition.domain.StatutRation.ACTIVE,
+                       com.dairy.apipinal.nutrition.domain.StatutRation.TERMINEE)
       and r.dateDebut <= :date
       and (
             r.dateFin is null
             or r.dateFin >= :date
           )
     """)
-    List<Ration> findAllActiveRationsAtDate(
+    List<Ration> findAllEffectiveRationsAtDate(
             @Param("tenantId") UUID tenantId,
-            @Param("date") LocalDate date,
-            @Param("statut") StatutRation statut
+            @Param("exploitationId") UUID exploitationId,
+            @Param("date") LocalDate date
+    );
+
+    List<Ration> findByAnimalIdAndTenantIdAndStatut(
+            UUID animalId,
+            UUID tenantId,
+            StatutRation statut
     );
 }

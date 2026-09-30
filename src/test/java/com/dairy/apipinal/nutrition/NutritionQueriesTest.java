@@ -57,14 +57,14 @@ class NutritionQueriesTest {
     void shouldGetRationForCurrentTenant() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID rationId = UUID.randomUUID();
         UUID animalId = UUID.randomUUID();
 
         LocalDate dateDebut = LocalDate.of(2026, 9, 1);
         LocalDate dateFin = LocalDate.of(2026, 9, 30);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 dateDebut,
                 OrigineRation.ACTUELLE
@@ -106,6 +106,7 @@ class NutritionQueriesTest {
     void shouldReturnFalseWhenRationDoesNotExistForCurrentTenant() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID rationId = UUID.randomUUID();
 
         when(tenantContext.currentTenantId())
@@ -127,14 +128,14 @@ class NutritionQueriesTest {
     void shouldFindActiveRationAtDate() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         LocalDate date = LocalDate.of(2026, 9, 15);
         LocalDate dateDebut = LocalDate.of(2026, 9, 1);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 dateDebut,
                 OrigineRation.ACTUELLE
@@ -143,15 +144,12 @@ class NutritionQueriesTest {
         ration.ajouterLigne(UUID.randomUUID(), new BigDecimal("5"));
         ration.activer();
 
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
+
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                date,
-                StatutRation.ACTIVE
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, date)).thenReturn(Optional.of(ration));
 
         Optional<RationReference> result =
                 nutritionQueries.findActiveRation(
@@ -172,30 +170,23 @@ class NutritionQueriesTest {
                 .isEqualTo(OrigineRation.ACTUELLE);
 
         verify(rationRepository)
-                .findActiveRationAtDate(
-                        tenantId,
-                        animalId,
-                        date,
-                        StatutRation.ACTIVE
-                );
+                .findEffectiveRationAtDate(tenantId, exploitationId, animalId, date);
     }
 
     @Test
     void shouldReturnEmptyWhenNoActiveRationExistsAtDate() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2026, 9, 15);
+
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                date,
-                StatutRation.ACTIVE
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, date)).thenReturn(Optional.empty());
 
         Optional<RationReference> result =
                 nutritionQueries.findActiveRation(
@@ -238,13 +229,13 @@ class NutritionQueriesTest {
     void shouldCalculateFeedCostThroughRationService() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         LocalDate date = LocalDate.of(2026, 9, 15);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -253,15 +244,12 @@ class NutritionQueriesTest {
         ration.ajouterLigne(UUID.randomUUID(), new BigDecimal("5"));
         ration.activer();
 
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
+
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                date,
-                StatutRation.ACTIVE
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, date)).thenReturn(Optional.of(ration));
 
         var costResult =
                 new com.dairy.apipinal.nutrition.application.RationCostResult(
@@ -314,19 +302,17 @@ class NutritionQueriesTest {
     void shouldReturnEmptyFeedCostWhenNoActiveRationExists() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
 
         LocalDate date = LocalDate.of(2026, 9, 15);
 
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
+
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                date,
-                StatutRation.ACTIVE
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, date)).thenReturn(Optional.empty());
 
         Optional<RationCostReference> result =
                 nutritionQueries.calculateFeedCost(
@@ -347,6 +333,7 @@ class NutritionQueriesTest {
     void shouldCalculateTotalFeedCostForExploitation() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
@@ -363,20 +350,14 @@ class NutritionQueriesTest {
         when(ration.getAnimalId())
                 .thenReturn(animalId);
 
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
+
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findAllActiveRationsAtDate(
-                tenantId,
-                jour1,
-                StatutRation.ACTIVE
-        )).thenReturn(List.of(ration));
+        when(rationRepository.findAllEffectiveRationsAtDate(tenantId, exploitationId, jour1)).thenReturn(List.of(ration));
 
-        when(rationRepository.findAllActiveRationsAtDate(
-                tenantId,
-                jour2,
-                StatutRation.ACTIVE
-        )).thenReturn(List.of(ration));
+        when(rationRepository.findAllEffectiveRationsAtDate(tenantId, exploitationId, jour2)).thenReturn(List.of(ration));
 
         when(rationService.calculateCost(any()))
                 .thenReturn(
@@ -411,6 +392,20 @@ class NutritionQueriesTest {
                 new BigDecimal("7200.00"),
                 result.get().coutAlimentation()
         );
+    }
+
+    @Test
+    void shouldRejectHistoricalCostWithoutCurrentExploitation() {
+        when(tenantContext.currentTenantId()).thenReturn(UUID.randomUUID());
+        LocalDate date = LocalDate.of(2026, 8, 15);
+
+        assertThatThrownBy(() -> nutritionQueries.calculateFeedCost(UUID.randomUUID(), date))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("exploitation courante");
+        assertThatThrownBy(() -> nutritionQueries.calculateTotalFeedCost(date, date.plusDays(1)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("exploitation courante");
+        verifyNoInteractions(rationRepository, rationService);
     }
 
     private RationCostResult mockRationCostResult(

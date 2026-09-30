@@ -3,7 +3,6 @@ package com.dairy.apipinal.nutrition.application;
 import com.dairy.apipinal.nutrition.api.*;
 import com.dairy.apipinal.nutrition.application.CalculateRationCost;
 import com.dairy.apipinal.nutrition.domain.Ration;
-import com.dairy.apipinal.nutrition.domain.StatutRation;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
 import org.springframework.stereotype.Service;
@@ -11,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -66,13 +66,14 @@ public class NutritionQueriesImpl implements NutritionQueries {
             LocalDate date
     ) {
         UUID tenantId = tenantContext.currentTenantId();
+        UUID exploitationId = requireCurrentExploitationId();
 
         return rationRepository
-                .findActiveRationAtDate(
+                .findEffectiveRationAtDate(
                         tenantId,
+                        exploitationId,
                         animalId,
-                        date,
-                        StatutRation.ACTIVE
+                        date
                 )
                 .map(this::toReference);
     }
@@ -191,6 +192,7 @@ public class NutritionQueriesImpl implements NutritionQueries {
         validatePeriod(dateDebut, dateFinExclusive);
 
         UUID tenantId = tenantContext.currentTenantId();
+        UUID exploitationId = requireCurrentExploitationId();
 
         BigDecimal coutTotal = BigDecimal.ZERO;
 
@@ -198,13 +200,14 @@ public class NutritionQueriesImpl implements NutritionQueries {
 
         while (date.isBefore(dateFinExclusive)) {
 
-            var rations = rationRepository.findAllActiveRationsAtDate(
+            List<Ration> rations = rationRepository.findAllEffectiveRationsAtDate(
                     tenantId,
-                    date,
-                    StatutRation.ACTIVE
+                    exploitationId,
+                    date
             );
 
             for (Ration ration : rations) {
+
 
                 var result = rationService.calculateCost(
                         new CalculateRationCost(
@@ -229,5 +232,13 @@ public class NutritionQueriesImpl implements NutritionQueries {
                         coutTotal
                 )
         );
+    }
+
+    private UUID requireCurrentExploitationId() {
+        UUID exploitationId = tenantContext.currentExploitationId();
+        if (exploitationId == null) {
+            throw new IllegalStateException("L'exploitation courante est obligatoire pour calculer les coûts alimentaires.");
+        }
+        return exploitationId;
     }
 }

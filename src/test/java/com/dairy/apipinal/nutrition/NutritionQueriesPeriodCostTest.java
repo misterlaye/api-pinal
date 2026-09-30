@@ -39,12 +39,15 @@ class NutritionQueriesPeriodCostTest {
     void shouldCalculateFeedCostForEntirePeriod() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         LocalDate jour1 = LocalDate.of(2026, 9, 1);
         LocalDate jour2 = LocalDate.of(2026, 9, 2);
         LocalDate finExclusive = LocalDate.of(2026, 9, 3);
+
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
@@ -86,19 +89,9 @@ class NutritionQueriesPeriodCostTest {
                 animalId
         );
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                jour1,
-                StatutRation.ACTIVE
-        )).thenReturn(Optional.of(rationDay1));
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, jour1)).thenReturn(Optional.of(rationDay1));
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                jour2,
-                StatutRation.ACTIVE
-        )).thenReturn(Optional.of(rationDay2));
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, jour2)).thenReturn(Optional.of(rationDay2));
 
         when(rationService.calculateCost(any()))
                 .thenReturn(
@@ -139,21 +132,19 @@ class NutritionQueriesPeriodCostTest {
     void shouldReturnEmptyWhenOneDayHasNoActiveRation() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
 
         LocalDate jour1 = LocalDate.of(2026, 9, 1);
         LocalDate jour2 = LocalDate.of(2026, 9, 2);
         LocalDate finExclusive = LocalDate.of(2026, 9, 3);
 
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
+
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findActiveRationAtDate(
-                tenantId,
-                animalId,
-                jour1,
-                com.dairy.apipinal.nutrition.domain.StatutRation.ACTIVE
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findEffectiveRationAtDate(tenantId, exploitationId, animalId, jour1)).thenReturn(Optional.empty());
 
         NutritionQueriesImpl queries =
                 new NutritionQueriesImpl(

@@ -1,6 +1,7 @@
 package com.dairy.apipinal.nutrition.application;
 
 import com.dairy.apipinal.animal.api.AnimalQueries;
+import com.dairy.apipinal.animal.api.AnimalReference;
 import com.dairy.apipinal.nutrition.domain.*;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.AlimentRepository;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.PrixAlimentRepository;
@@ -42,11 +43,22 @@ public class RationService {
     public Ration create(CreateRation command) {
 
         UUID tenantId = tenantContext.currentTenantId();
+        UUID exploitationId = tenantContext.currentExploitationId();
 
-        animalQueries.getReference(command.animalId());
+        AnimalReference animal = animalQueries.getReference(command.animalId());
+
+        if (!"ACTIF".equals(animal.statut())) {
+            throw new IllegalStateException("Une ration ne peut être attribuée qu'à un animal actif.");
+        }
+
+        if (!animal.exploitationId().equals(exploitationId)) {
+            throw new IllegalArgumentException("L'animal n'appartient pas à cette exploitation.");
+        }
+
 
         Ration ration = new Ration(
                 tenantId,
+                exploitationId,
                 command.animalId(),
                 command.dateDebut(),
                 command.origine()

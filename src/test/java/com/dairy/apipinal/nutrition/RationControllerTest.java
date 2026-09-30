@@ -43,6 +43,7 @@ class RationControllerTest {
 
     private UUID animalId;
     private UUID tenantId;
+    private UUID exploitationId;
 
     @BeforeEach
     void setUp() {
@@ -56,13 +57,13 @@ class RationControllerTest {
 
         animalId = UUID.randomUUID();
         tenantId = UUID.randomUUID();
+        exploitationId = UUID.randomUUID();
     }
 
     @Test
     void shouldCreateDraftRation() throws Exception {
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 16),
                 OrigineRation.ACTUELLE
@@ -144,8 +145,7 @@ class RationControllerTest {
 
         UUID rationId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 16),
                 OrigineRation.ACTUELLE
@@ -187,8 +187,7 @@ class RationControllerTest {
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 1, 1),
                 OrigineRation.ACTUELLE
@@ -261,8 +260,7 @@ class RationControllerTest {
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -323,8 +321,7 @@ class RationControllerTest {
         UUID requestedAnimalId = UUID.randomUUID();
         UUID rationAnimalId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 rationAnimalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -350,8 +347,7 @@ class RationControllerTest {
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 16),
                 OrigineRation.ACTUELLE

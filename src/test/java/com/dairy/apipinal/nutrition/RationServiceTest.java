@@ -70,8 +70,8 @@ class RationServiceTest {
     @Test
     void shouldCreateDraftRation() {
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(animalQueries.getReference(animalId))
                 .thenReturn(
@@ -112,14 +112,13 @@ class RationServiceTest {
     @Test
     void shouldActivateRationWithoutConflict() {
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -164,14 +163,13 @@ class RationServiceTest {
     @Test
     void shouldRefuseActivationWhenActiveRationOverlapsPeriod() {
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -207,14 +205,13 @@ class RationServiceTest {
     @Test
     void shouldRefuseActivationWhenAnimalIdDoesNotMatch() {
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         UUID rationId = UUID.randomUUID();
         UUID rationAnimalId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 rationAnimalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -242,16 +239,17 @@ class RationServiceTest {
     @Test
     void shouldTerminateActiveRation() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         LocalDate dateDebut = LocalDate.of(2026, 1, 1);
         LocalDate dateFin = LocalDate.of(2026, 1, 31);
 
-        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 dateDebut,
                 OrigineRation.ACTUELLE
@@ -291,13 +289,14 @@ class RationServiceTest {
     @Test
     void shouldRefuseTerminationWhenRationIsNotActive() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 1, 1),
                 OrigineRation.ACTUELLE
@@ -323,13 +322,14 @@ class RationServiceTest {
     @Test
     void shouldRefuseTerminationWhenEndDateIsBeforeStartDate() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 2, 1),
                 OrigineRation.ACTUELLE
@@ -362,14 +362,15 @@ class RationServiceTest {
     @Test
     void shouldRefuseTerminationWhenAnimalIdDoesNotMatch() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID rationAnimalId = UUID.randomUUID();
         UUID requestedAnimalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 rationAnimalId,
                 LocalDate.of(2026, 1, 1),
                 OrigineRation.ACTUELLE
@@ -395,10 +396,12 @@ class RationServiceTest {
     @Test
     void shouldRefuseTerminationWhenRationDoesNotExist() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(rationId, tenantId))
                 .thenReturn(Optional.empty());
@@ -420,18 +423,18 @@ class RationServiceTest {
     @Test
     void shouldGetRationForCurrentTenant() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID rationId = UUID.randomUUID();
         UUID animalId = UUID.randomUUID();
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,
@@ -452,7 +455,7 @@ class RationServiceTest {
         UUID otherTenantId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId())
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId())
                 .thenReturn(currentTenantId);
 
         when(rationRepository.findByIdAndTenantId(
@@ -472,10 +475,11 @@ class RationServiceTest {
     @Test
     void shouldRefuseWhenRationDoesNotExist() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID rationId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,
@@ -494,6 +498,7 @@ class RationServiceTest {
     @Test
     void shouldGetRationsByAnimalForCurrentTenant() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
 
         Pageable pageable = PageRequest.of(
@@ -502,8 +507,7 @@ class RationServiceTest {
                 Sort.by(Sort.Direction.DESC, "dateDebut")
         );
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 16),
                 OrigineRation.ACTUELLE
@@ -515,8 +519,8 @@ class RationServiceTest {
                 1
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(animalQueries.getReference(animalId))
                 .thenReturn(mock(
@@ -543,14 +547,15 @@ class RationServiceTest {
     @Test
     void shouldReturnEmptyPageWhenAnimalHasNoRations() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
 
         Pageable pageable = PageRequest.of(0, 20);
 
         Page<Ration> expected = Page.empty(pageable);
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(animalQueries.getReference(animalId))
                 .thenReturn(mock(
@@ -581,6 +586,7 @@ class RationServiceTest {
     void shouldCalculateRationCostAtGivenDate() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
@@ -589,8 +595,7 @@ class RationServiceTest {
 
         LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -606,8 +611,8 @@ class RationServiceTest {
                 new BigDecimal("2.0000")
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,
@@ -652,14 +657,14 @@ class RationServiceTest {
     void shouldRefuseCostCalculationWhenPriceIsUnavailable() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
         LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
@@ -670,8 +675,8 @@ class RationServiceTest {
                 new BigDecimal("5.0000")
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,
@@ -703,7 +708,7 @@ class RationServiceTest {
 
         LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
 
-        when(tenantContext.currentTenantId())
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId())
                 .thenReturn(currentTenantId);
 
         when(rationRepository.findByIdAndTenantId(
@@ -727,21 +732,21 @@ class RationServiceTest {
     @Test
     void shouldRefuseCostCalculationWhenAnimalDoesNotMatch() {
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID rationAnimalId = UUID.randomUUID();
         UUID requestedAnimalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 rationAnimalId,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,
@@ -770,6 +775,7 @@ class RationServiceTest {
     void shouldUsePriceApplicableAtCalculationDate() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
@@ -778,8 +784,7 @@ class RationServiceTest {
         LocalDate dateFevrier = LocalDate.of(2026, 2, 15);
         LocalDate dateMars = LocalDate.of(2026, 3, 15);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 1, 1),
                 OrigineRation.ACTUELLE
@@ -790,8 +795,8 @@ class RationServiceTest {
                 new BigDecimal("5.0000")
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,
@@ -881,14 +886,14 @@ class RationServiceTest {
     void shouldRefuseCostCalculationWhenNoPriceIsApplicableAtRequestedDate() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
         UUID alimentId = UUID.randomUUID();
 
         LocalDate dateCalcul = LocalDate.of(2025, 12, 15);
 
-        Ration ration = new Ration(
-                tenantId,
+        Ration ration = new Ration(tenantId, exploitationId,
                 animalId,
                 LocalDate.of(2026, 1, 1),
                 OrigineRation.ACTUELLE
@@ -899,8 +904,8 @@ class RationServiceTest {
                 new BigDecimal("5.0000")
         );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(rationRepository.findByIdAndTenantId(
                 rationId,

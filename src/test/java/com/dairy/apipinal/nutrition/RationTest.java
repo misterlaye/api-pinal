@@ -15,11 +15,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RationTest {
 
     private static final UUID TENANT_ID = UUID.randomUUID();
+    private static final UUID EXPLOITATION_ID = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
     private static final UUID ANIMAL_ID = UUID.randomUUID();
 
     private Ration createRation() {
-        return new Ration(
-                TENANT_ID,
+        return new Ration(TENANT_ID, EXPLOITATION_ID,
                 ANIMAL_ID,
                 LocalDate.of(2026, 9, 1),
                 OrigineRation.ACTUELLE

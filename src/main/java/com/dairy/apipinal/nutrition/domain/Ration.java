@@ -68,11 +68,13 @@ public class Ration {
 
     public Ration(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
             LocalDate dateDebut,
             OrigineRation origine
     ) {
         this.tenantId = Objects.requireNonNull(tenantId, "Le tenant est obligatoire.");
+        this.exploitationId = Objects.requireNonNull(exploitationId, "L'exploitation est obligatoire.");
 
         this.animalId = Objects.requireNonNull(animalId, "L'animal est obligatoire.");
 
