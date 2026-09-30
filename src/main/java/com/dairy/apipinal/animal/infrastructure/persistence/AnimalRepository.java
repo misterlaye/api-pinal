@@ -36,4 +36,6 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID> {
             UUID tenantId,
             StatutAnimal statut
     );
+
+    long countByCycleReproductionId(UUID cycleReproductionId);
 }

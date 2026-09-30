@@ -1,10 +1,11 @@
-package com.dairy.apipinal.reproduction.api;
+package com.dairy.apipinal.animal.api;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public record VelageEnregistreEvent(
+/** Données nécessaires à l'inscription des veaux dans le troupeau. */
+public record NaissancesDeclareesEvent(
         UUID cycleId,
         UUID animalId,
         UUID tenantId,

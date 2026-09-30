@@ -3,6 +3,8 @@ package com.dairy.apipinal.reproduction.domain;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -41,8 +43,11 @@ public class CycleReproduction {
     @Column(name = "methode_reproduction", nullable = false, length = 50)
     private MethodeReproduction methodeReproduction;
 
-    @Column(name = "identifiant_taureau", length = 100)
-    private String identifiantTaureau;
+    @Column(name = "taureau_id")
+    private UUID taureauId;
+
+    @Column(name = "code_paillette", length = 100)
+    private String codePaillette;
 
     @Column(name = "date_prevue_velage", nullable = false)
     private LocalDate datePrevueVelage;
@@ -50,8 +55,12 @@ public class CycleReproduction {
     @Column(name = "date_reelle_velage")
     private LocalDate dateReelleVelage;
 
-    @Embedded
-    private ConstatGestation constatGestation;
+    @ElementCollection
+    @CollectionTable(
+            name = "constat_gestation",
+            joinColumns = @JoinColumn(name = "cycle_id")
+    )
+    private List<ConstatGestation> constatsGestation = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
@@ -79,7 +88,9 @@ public class CycleReproduction {
             int numeroCycle,
             LocalDate dateInsemination,
             MethodeReproduction methodeReproduction,
-            String identifiantTaureau,
+            UUID taureauId,
+            String codePaillette,
+            LocalDate datePrevueVelage,
             UUID actorId
     ) {
         this.animalId = animalId;
@@ -89,10 +100,9 @@ public class CycleReproduction {
         this.statut = StatutReproduction.EN_ATTENTE_CONSTAT;
         this.dateInsemination = dateInsemination;
         this.methodeReproduction = methodeReproduction;
-        this.identifiantTaureau = identifiantTaureau;
-
-        // Approximativement 283 jours de gestation pour une vache laitière
-        this.datePrevueVelage = dateInsemination.plusDays(283);
+        this.taureauId = taureauId;
+        this.codePaillette = codePaillette;
+        this.datePrevueVelage = datePrevueVelage;
 
         OffsetDateTime now = OffsetDateTime.now();
         this.createdAt = now;
@@ -106,11 +116,11 @@ public class CycleReproduction {
             throw new IllegalStateException("Le constat de gestation n'est possible qu'en statut EN_ATTENTE_CONSTAT.");
         }
 
-        this.constatGestation = new ConstatGestation(date, resultat, veterinaire);
+        this.constatsGestation.add(new ConstatGestation(date, resultat, veterinaire));
 
         if ("POSITIF".equalsIgnoreCase(resultat)) {
             this.statut = StatutReproduction.GESTANTE;
-        } else {
+        } else if ("NEGATIF".equalsIgnoreCase(resultat)) {
             this.statut = StatutReproduction.VIDE;
         }
 
@@ -140,6 +150,15 @@ public class CycleReproduction {
         this.updatedBy = actorId;
     }
 
+    public void interrompre(UUID actorId) {
+        if (this.statut == StatutReproduction.EN_ATTENTE_CONSTAT || this.statut == StatutReproduction.GESTANTE) {
+            this.statut = StatutReproduction.VIDE;
+            this.updatedAt = OffsetDateTime.now();
+            this.updatedBy = actorId;
+        }
+    }
+
+
     // Getters
     public UUID getId() { return id; }
     public UUID getAnimalId() { return animalId; }
@@ -149,9 +168,10 @@ public class CycleReproduction {
     public StatutReproduction getStatut() { return statut; }
     public LocalDate getDateInsemination() { return dateInsemination; }
     public MethodeReproduction getMethodeReproduction() { return methodeReproduction; }
-    public String getIdentifiantTaureau() { return identifiantTaureau; }
+    public UUID getTaureauId() { return taureauId; }
+    public String getCodePaillette() { return codePaillette; }
     public LocalDate getDatePrevueVelage() { return datePrevueVelage; }
     public LocalDate getDateReelleVelage() { return dateReelleVelage; }
-    public ConstatGestation getConstatGestation() { return constatGestation; }
+    public List<ConstatGestation> getConstatsGestation() { return new ArrayList<>(constatsGestation); }
     public OffsetDateTime getCreatedAt() { return createdAt; }
 }

@@ -6,6 +6,7 @@ import java.util.UUID;
 public record HealthEventRecorded(
         UUID eventId,
         UUID tenantId,
+        UUID exploitationId,
         UUID animalId,
         OffsetDateTime dateHeure
 ) {

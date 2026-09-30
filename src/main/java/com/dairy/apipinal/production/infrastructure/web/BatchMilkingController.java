@@ -44,6 +44,7 @@ public class BatchMilkingController {
         List<Traite> traites = enregistrerTraiteLot.execute(
                 new EnregistrerTraiteLot.Command(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         tenantContext.currentUserId(),
                         request.dateHeure(),
                         request.type(),

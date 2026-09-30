@@ -39,6 +39,7 @@ public class MilkingController {
         Traite traite = recordMilking.execute(
                 new RecordMilking.Command(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         lactationId,
                         tenantContext.currentUserId(),
                         request.dateHeure(),

@@ -23,7 +23,9 @@ public class VelageEnregistreEventListener {
         try {
             startLactation.execute(new StartLactation.Command(
                     event.tenantId(),
+                    event.exploitationId(),
                     event.animalId(),
+                    event.cycleId(),
                     event.dateVelage(),
                     // Utilisation d'un ID par défaut pour les actions système (ou null si le constructeur l'accepte)
                     event.tenantId()

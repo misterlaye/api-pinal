@@ -31,7 +31,11 @@ public class ReproductionQueriesImpl implements ReproductionQueries {
     }
 
     private CycleReproductionResponse mapToResponse(CycleReproduction cycle) {
-        ConstatGestation constat = cycle.getConstatGestation();
+        List<CycleReproductionResponse.ConstatGestationResponse> constats = cycle.getConstatsGestation()
+                .stream()
+                .map(c -> new CycleReproductionResponse.ConstatGestationResponse(c.getDate(), c.getResultat(), c.getVeterinaire()))
+                .collect(Collectors.toList());
+
         return new CycleReproductionResponse(
                 cycle.getId(),
                 cycle.getAnimalId(),
@@ -39,12 +43,11 @@ public class ReproductionQueriesImpl implements ReproductionQueries {
                 cycle.getStatut().name(),
                 cycle.getDateInsemination(),
                 cycle.getMethodeReproduction().name(),
-                cycle.getIdentifiantTaureau(),
+                cycle.getTaureauId(),
+                cycle.getCodePaillette(),
                 cycle.getDatePrevueVelage(),
                 cycle.getDateReelleVelage(),
-                constat != null ? constat.getDate() : null,
-                constat != null ? constat.getResultat() : null,
-                constat != null ? constat.getVeterinaire() : null,
+                constats,
                 cycle.getCreatedAt() != null ? cycle.getCreatedAt() : null
         );
     }

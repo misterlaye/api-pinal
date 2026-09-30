@@ -39,11 +39,12 @@ class HealthIntegrationTest {
     void shouldRecordHealthEvent() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID userId = UUID.randomUUID();
         UUID animalId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(tenantContext.currentUserId())
                 .thenReturn(userId);
@@ -53,7 +54,7 @@ class HealthIntegrationTest {
                         new AnimalReference(
                                 animalId,
                                 tenantId,
-                                UUID.randomUUID(),
+                                exploitationId,
                                 UUID.randomUUID(),
                                 "DI001",
                                 "Diouma",
@@ -65,7 +66,9 @@ class HealthIntegrationTest {
                 recordHealthEvent.execute(
                         new RecordHealthEvent.Command(
                                 tenantId,
+                                exploitationId,
                                 animalId,
+                                null,
                                 OffsetDateTime.parse(
                                         "2026-02-01T10:00:00Z"
                                 ),

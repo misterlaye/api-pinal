@@ -50,11 +50,12 @@ class ProductionIntegrationTest {
     void shouldStartLactationAndRecordMilking() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID userId = UUID.randomUUID();
         UUID animalId = UUID.randomUUID();
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(tenantContext.currentUserId())
                 .thenReturn(userId);
@@ -64,7 +65,7 @@ class ProductionIntegrationTest {
                         new AnimalReference(
                                 animalId,
                                 tenantId,
-                                UUID.randomUUID(),
+                                exploitationId,
                                 UUID.randomUUID(),
                                 "DI001",
                                 "Diouma",
@@ -73,9 +74,9 @@ class ProductionIntegrationTest {
                 );
 
         var lactation = startLactation.execute(
-                new StartLactation.Command(
-                        tenantId,
+                new StartLactation.Command(tenantId, exploitationId,
                         animalId,
+                        null,
                         LocalDate.of(2026, 1, 1),
                         userId
                 )
@@ -86,6 +87,7 @@ class ProductionIntegrationTest {
         Traite traite = recordMilking.execute(
                 new RecordMilking.Command(
                         tenantId,
+                        exploitationId,
                         lactation.getId(),
                         userId,
                         OffsetDateTime.parse("2026-01-02T06:00:00Z"),

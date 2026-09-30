@@ -40,6 +40,7 @@ class ProductionQueriesTest {
     void shouldAggregateMilkProductionForAnimalAcrossLactations() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
         UUID lactationId1 = UUID.randomUUID();
         UUID lactationId2 = UUID.randomUUID();
@@ -104,6 +105,7 @@ class ProductionQueriesTest {
     void shouldReturnTotalMilkProductionForTenant() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
 
         OffsetDateTime debut =
                 OffsetDateTime.parse("2026-09-01T00:00:00Z");

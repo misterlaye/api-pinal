@@ -8,6 +8,7 @@ public record InseminationRequest(
         UUID exploitationId,
         LocalDate dateInsemination,
         String methodeReproduction,
-        String identifiantTaureau
+        UUID taureauId,
+        String codePaillette
 ) {
 }

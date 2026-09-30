@@ -44,4 +44,19 @@ public interface TraiteRepository extends JpaRepository<Traite, UUID> {
             @Param("dateDebut") OffsetDateTime dateDebut,
             @Param("dateFinExclusive") OffsetDateTime dateFinExclusive
     );
-}
+
+    @Query("""
+        select coalesce(sum(t.quantiteKg), 0)
+        from Traite t
+        where t.tenantId = :tenantId
+          and t.exploitationId = :exploitationId
+          and t.dateHeure >= :dateDebut
+          and t.dateHeure < :dateFinExclusive
+        """)
+    BigDecimal sumQuantiteKgByExploitationAndPeriod(
+            @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
+            @Param("dateDebut") OffsetDateTime dateDebut,
+            @Param("dateFinExclusive") OffsetDateTime dateFinExclusive
+    );
+}

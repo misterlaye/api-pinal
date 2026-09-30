@@ -39,6 +39,7 @@ public class RecordAnimalMilking {
                     // Auto-create a lactation if none exists
                     Lactation newLactation = new Lactation(
                             command.tenantId(),
+                            command.exploitationId(),
                             command.animalId(),
                             java.time.LocalDate.now(),
                             command.auteurId()
@@ -50,6 +51,7 @@ public class RecordAnimalMilking {
         return recordMilking.execute(
                 new RecordMilking.Command(
                         command.tenantId(),
+                        command.exploitationId(),
                         activeLactation.getId(),
                         command.auteurId(),
                         command.dateHeure(),
@@ -61,6 +63,7 @@ public class RecordAnimalMilking {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
             UUID auteurId,
             OffsetDateTime dateHeure,

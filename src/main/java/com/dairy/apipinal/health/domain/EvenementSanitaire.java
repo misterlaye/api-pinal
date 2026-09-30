@@ -32,6 +32,9 @@ public class EvenementSanitaire {
     @Column(name = "date_heure", nullable = false)
     private OffsetDateTime dateHeure;
 
+    @Column(name = "source_cycle_id")
+    private UUID sourceCycleId;
+
     @Column(nullable = false, length = 2000)
     private String description;
 
@@ -65,13 +68,19 @@ public class EvenementSanitaire {
 
     public EvenementSanitaire(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
+            UUID sourceCycleId,
             OffsetDateTime dateHeure,
             String description,
             UUID actorId
     ) {
         if (tenantId == null) {
             throw new IllegalArgumentException("Le tenant est obligatoire.");
+        }
+
+        if (exploitationId == null) {
+            throw new IllegalArgumentException("L'exploitation est obligatoire.");
         }
 
         if (animalId == null) {
@@ -97,7 +106,9 @@ public class EvenementSanitaire {
         }
 
         this.tenantId = tenantId;
+        this.exploitationId = exploitationId;
         this.animalId = animalId;
+        this.sourceCycleId = sourceCycleId;
         this.dateHeure = dateHeure;
         this.description = description;
         this.createdBy = actorId;
@@ -106,6 +117,17 @@ public class EvenementSanitaire {
         OffsetDateTime now = OffsetDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+    }
+
+    public EvenementSanitaire(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID animalId,
+            OffsetDateTime dateHeure,
+            String description,
+            UUID actorId
+    ) {
+        this(tenantId, exploitationId, animalId, null, dateHeure, description, actorId);
     }
 
     public void update(
@@ -150,6 +172,10 @@ public class EvenementSanitaire {
 
     public UUID getAnimalId() {
         return animalId;
+    }
+
+    public UUID getSourceCycleId() {
+        return sourceCycleId;
     }
 
     public OffsetDateTime getDateHeure() {

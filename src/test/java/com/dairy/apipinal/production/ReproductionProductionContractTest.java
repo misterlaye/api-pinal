@@ -35,7 +35,7 @@ class ReproductionProductionContractTest {
     // ──────────────────────────────────────────────────────
 
     private Lactation createActiveLactation(LocalDate dateDebut) {
-        return new Lactation(TENANT_ID, ANIMAL_ID, dateDebut, ACTOR_ID);
+        return new Lactation(TENANT_ID, EXPLOITATION_ID, EXPLOITATION_ID, ANIMAL_ID, dateDebut, ACTOR_ID);
     }
 
     private CycleReproduction createCycle(LocalDate dateInsemination) {
@@ -43,7 +43,7 @@ class ReproductionProductionContractTest {
                 ANIMAL_ID, TENANT_ID, EXPLOITATION_ID,
                 1, dateInsemination,
                 MethodeReproduction.INSEMINATION_ARTIFICIELLE,
-                "TAUREAU-001", ACTOR_ID
+                null, "CODE_PAILLETTE_1", dateInsemination.plusDays(283), ACTOR_ID
         );
     }
 
@@ -187,8 +187,7 @@ class ReproductionProductionContractTest {
             LocalDate dateReelleVelage = LocalDate.of(2026, 10, 15);
 
             // Simulation de ce que fait VelageEnregistreEventListener + StartLactation
-            Lactation nouvelleLactation = new Lactation(
-                    TENANT_ID, ANIMAL_ID, dateReelleVelage, ACTOR_ID
+            Lactation nouvelleLactation = new Lactation(TENANT_ID, EXPLOITATION_ID, ANIMAL_ID, dateReelleVelage, ACTOR_ID
             );
 
             assertEquals(dateReelleVelage, nouvelleLactation.getDateDebut());
@@ -266,7 +265,7 @@ class ReproductionProductionContractTest {
                     ANIMAL_ID, TENANT_ID, EXPLOITATION_ID,
                     2, LocalDate.of(2027, 2, 1),
                     MethodeReproduction.INSEMINATION_ARTIFICIELLE,
-                    "TAUREAU-002", ACTOR_ID
+                    null, "CODE_PAILLETTE_2", LocalDate.of(2027, 2, 1).plusDays(283), ACTOR_ID
             );
 
             assertEquals(StatutReproduction.EN_ATTENTE_CONSTAT, cycle2.getStatut());
@@ -300,10 +299,10 @@ class ReproductionProductionContractTest {
             // Tout l'historique est conservé
             assertEquals(dateInsemination, cycle.getDateInsemination());
             assertEquals(MethodeReproduction.INSEMINATION_ARTIFICIELLE, cycle.getMethodeReproduction());
-            assertEquals("TAUREAU-001", cycle.getIdentifiantTaureau());
-            assertNotNull(cycle.getConstatGestation());
-            assertEquals("POSITIF", cycle.getConstatGestation().getResultat());
-            assertEquals("Dr Vétérinaire", cycle.getConstatGestation().getVeterinaire());
+            assertEquals("CODE_PAILLETTE_1", cycle.getCodePaillette());
+            assertFalse(cycle.getConstatsGestation().isEmpty());
+            assertEquals("POSITIF", cycle.getConstatsGestation().get(0).getResultat());
+            assertEquals("Dr Vétérinaire", cycle.getConstatsGestation().get(0).getVeterinaire());
             assertEquals(dateVelage, cycle.getDateReelleVelage());
             assertEquals(StatutReproduction.TERMINEE_VELAGE, cycle.getStatut());
         }
@@ -322,8 +321,8 @@ class ReproductionProductionContractTest {
 
             // L'historique est intégralement conservé
             assertEquals(dateInsemination, cycle.getDateInsemination());
-            assertNotNull(cycle.getConstatGestation());
-            assertEquals("POSITIF", cycle.getConstatGestation().getResultat());
+            assertFalse(cycle.getConstatsGestation().isEmpty());
+            assertEquals("POSITIF", cycle.getConstatsGestation().get(0).getResultat());
             assertEquals(StatutReproduction.AVORTEE, cycle.getStatut());
             assertNull(cycle.getDateReelleVelage(),
                     "L'avortement ne doit pas remplir la date de vêlage");
@@ -367,7 +366,7 @@ class ReproductionProductionContractTest {
             assertEquals(dateNouveauVelage.minusDays(1), ancienne.getDateFin());
 
             // Puis on crée la nouvelle
-            Lactation nouvelle = new Lactation(TENANT_ID, ANIMAL_ID, dateNouveauVelage, ACTOR_ID);
+            Lactation nouvelle = new Lactation(TENANT_ID, EXPLOITATION_ID, EXPLOITATION_ID, ANIMAL_ID, dateNouveauVelage, ACTOR_ID);
             assertEquals(StatutLactation.EN_COURS, nouvelle.getStatut());
 
             // Vérification : l'ancienne est TERMINEE, la nouvelle est EN_COURS

@@ -5,6 +5,8 @@ import com.dairy.apipinal.animal.domain.MouvementSortie;
 import com.dairy.apipinal.animal.domain.StatutAnimal;
 import com.dairy.apipinal.animal.infrastructure.persistence.AnimalRepository;
 import com.dairy.apipinal.animal.infrastructure.persistence.MouvementSortieRepository;
+import com.dairy.apipinal.animal.api.AnimalSortiEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +19,16 @@ public class DeclarerMouvementSortie {
 
     private final AnimalRepository animalRepository;
     private final MouvementSortieRepository mouvementSortieRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public DeclarerMouvementSortie(AnimalRepository animalRepository, MouvementSortieRepository mouvementSortieRepository) {
+    public DeclarerMouvementSortie(
+            AnimalRepository animalRepository,
+            MouvementSortieRepository mouvementSortieRepository,
+            ApplicationEventPublisher eventPublisher
+    ) {
         this.animalRepository = animalRepository;
         this.mouvementSortieRepository = mouvementSortieRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -50,8 +58,20 @@ public class DeclarerMouvementSortie {
                 command.actorId()
         );
 
-        return mouvementSortieRepository.save(mouvement);
+        MouvementSortie saved = mouvementSortieRepository.save(mouvement);
+
+        eventPublisher.publishEvent(new AnimalSortiEvent(
+                command.animalId(),
+                command.tenantId(),
+                command.exploitationId(),
+                nouveauStatut,
+                command.dateSortie(),
+                command.actorId()
+        ));
+
+        return saved;
     }
+
 
     public record Command(
             UUID animalId,

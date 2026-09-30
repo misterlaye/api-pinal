@@ -19,6 +19,7 @@ class HealthDomainTest {
                 () -> new EvenementSanitaire(
                         UUID.randomUUID(),
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         OffsetDateTime.now(),
                         "",
                         UUID.randomUUID()
@@ -31,6 +32,7 @@ class HealthDomainTest {
 
         EvenementSanitaire event =
                 new EvenementSanitaire(
+                        UUID.randomUUID(),
                         UUID.randomUUID(),
                         UUID.randomUUID(),
                         OffsetDateTime.parse(
@@ -57,6 +59,7 @@ class HealthDomainTest {
 
         EvenementSanitaire event =
                 new EvenementSanitaire(
+                        UUID.randomUUID(),
                         UUID.randomUUID(),
                         UUID.randomUUID(),
                         OffsetDateTime.parse(

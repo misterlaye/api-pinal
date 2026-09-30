@@ -30,6 +30,9 @@ public class CreateAnimal {
 
     @Transactional
     public Animal execute(Command command) {
+        if (command.exploitationId() == null) {
+            throw new IllegalArgumentException("L'exploitation est obligatoire.");
+        }
 
         raceRepository.findByIdAndActifTrue(command.raceId())
                 .orElseThrow(() -> new IllegalArgumentException(

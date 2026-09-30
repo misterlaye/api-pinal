@@ -44,6 +44,12 @@ public class RecordMilking {
                         "Lactation introuvable."
                 ));
 
+        if (!lactation.getExploitationId().equals(command.exploitationId())) {
+            throw new IllegalArgumentException(
+                    "La lactation n'appartient pas à cette exploitation."
+            );
+        }
+
         if (lactation.getStatut() != StatutLactation.EN_COURS) {
             throw new IllegalStateException(
                     "Une traite ne peut appartenir qu'à une lactation en cours."
@@ -60,6 +66,7 @@ public class RecordMilking {
 
         Traite traite = new Traite(
                 command.tenantId(),
+                command.exploitationId(),
                 lactation.getId(),
                 command.auteurId(),
                 command.dateHeure(),
@@ -76,6 +83,7 @@ public class RecordMilking {
                         saved.getLactationId(),
                         lactation.getAnimalId(),
                         saved.getTenantId(),
+                        saved.getExploitationId(),
                         saved.getQuantiteKg(),
                         saved.getDateHeure()
                 )
@@ -86,6 +94,7 @@ public class RecordMilking {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID lactationId,
             UUID auteurId,
             OffsetDateTime dateHeure,

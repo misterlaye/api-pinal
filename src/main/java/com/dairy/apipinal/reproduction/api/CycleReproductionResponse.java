@@ -2,6 +2,7 @@ package com.dairy.apipinal.reproduction.api;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record CycleReproductionResponse(
@@ -11,12 +12,16 @@ public record CycleReproductionResponse(
         String statut,
         LocalDate dateInsemination,
         String methodeReproduction,
-        String identifiantTaureau,
+        UUID taureauId,
+        String codePaillette,
         LocalDate datePrevueVelage,
         LocalDate dateReelleVelage,
-        LocalDate constatDate,
-        String constatResultat,
-        String constatVeterinaire,
+        List<ConstatGestationResponse> constats,
         OffsetDateTime createdAt
 ) {
+    public record ConstatGestationResponse(
+            LocalDate date,
+            String resultat,
+            String veterinaire
+    ) {}
 }

@@ -148,7 +148,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
         return jdbcTemplate.queryForObject(
                 "SELECT id, nom, identifiant, " +
                 "EXISTS (SELECT 1 FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS') as is_lactating, " +
-                "(SELECT DATE_PART('day', CURRENT_DATE - CAST(l.date_debut AS DATE)) FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS' LIMIT 1) as jours_lactation, " +
+                "(SELECT (CURRENT_DATE - CAST(l.date_debut AS DATE)) FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS' LIMIT 1) as jours_lactation, " +
                 "EXISTS (SELECT 1 FROM ration r WHERE r.tenant_id = ? AND r.animal_id = animal.id AND r.statut = 'ACTIVE') as has_ration " +
                 "FROM animal WHERE tenant_id = ? AND id = ?",
                 (rs, rowNum) -> {

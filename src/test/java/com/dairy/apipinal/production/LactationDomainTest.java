@@ -17,6 +17,7 @@ class LactationDomainTest {
         Lactation lactation = new Lactation(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
+                UUID.randomUUID(),
                 LocalDate.of(2026, 1, 10),
                 UUID.randomUUID()
         );
@@ -31,6 +32,7 @@ class LactationDomainTest {
     void shouldRejectEndDateBeforeStartDate() {
 
         Lactation lactation = new Lactation(
+                UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 LocalDate.of(2026, 1, 10),

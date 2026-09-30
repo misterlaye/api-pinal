@@ -3,6 +3,7 @@ package com.dairy.apipinal.reproduction.infrastructure.web;
 import com.dairy.apipinal.shared.security.TenantContext;
 import com.dairy.apipinal.reproduction.api.CycleReproductionResponse;
 import com.dairy.apipinal.reproduction.api.ReproductionQueries;
+import com.dairy.apipinal.reproduction.api.VelageEnregistreEvent;
 import com.dairy.apipinal.reproduction.application.DeclarerInsemination;
 import com.dairy.apipinal.reproduction.application.DeclarerVelage;
 import com.dairy.apipinal.reproduction.application.EnregistrerConstatGestation;
@@ -56,7 +57,8 @@ public class ReproductionController {
                 request.exploitationId(),
                 request.dateInsemination(),
                 MethodeReproduction.valueOf(request.methodeReproduction()),
-                request.identifiantTaureau(),
+                request.taureauId(),
+                request.codePaillette(),
                 userId
         ));
 
@@ -100,6 +102,7 @@ public class ReproductionController {
         CycleReproduction cycle = declarerVelage.execute(new DeclarerVelage.Command(
                 id,
                 request.dateReelle(),
+                request.veaux() != null ? request.veaux().stream().map(v -> new VelageEnregistreEvent.VeauPayload(v.identifiant(), v.nom(), v.sexe(), v.indexPortee())).toList() : java.util.Collections.emptyList(),
                 userId
         ));
 

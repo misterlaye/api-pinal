@@ -48,7 +48,9 @@ public class HealthEventController {
                 recordHealthEvent.execute(
                         new RecordHealthEvent.Command(
                                 tenantContext.currentTenantId(),
+                                tenantContext.currentExploitationId(),
                                 animalId,
+                                null, // sourceCycleId
                                 request.dateHeure(),
                                 request.description(),
                                 tenantContext.currentUserId()

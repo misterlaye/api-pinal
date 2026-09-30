@@ -56,6 +56,7 @@ public class Traite {
 
     public Traite(
             UUID tenantId,
+            UUID exploitationId,
             UUID lactationId,
             UUID auteurId,
             OffsetDateTime dateHeure,
@@ -88,7 +89,12 @@ public class Traite {
             );
         }
 
+        if (exploitationId == null) {
+            throw new IllegalArgumentException("L'exploitation est obligatoire.");
+        }
+
         this.tenantId = tenantId;
+        this.exploitationId = exploitationId;
         this.lactationId = lactationId;
         this.auteurId = auteurId;
         this.dateHeure = dateHeure;

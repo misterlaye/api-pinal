@@ -42,9 +42,17 @@ public class RecordHealthEvent {
             );
         }
 
+        if (!animal.exploitationId().equals(command.exploitationId())) {
+            throw new IllegalArgumentException(
+                    "L'animal n'appartient pas à cette exploitation."
+            );
+        }
+
         EvenementSanitaire event = new EvenementSanitaire(
                 command.tenantId(),
+                command.exploitationId(),
                 command.animalId(),
+                command.sourceCycleId(), // New field
                 command.dateHeure(),
                 command.description(),
                 command.actorId()
@@ -56,6 +64,7 @@ public class RecordHealthEvent {
                 new HealthEventRecorded(
                         saved.getId(),
                         saved.getTenantId(),
+                        saved.getExploitationId(),
                         saved.getAnimalId(),
                         saved.getDateHeure()
                 )
@@ -66,7 +75,9 @@ public class RecordHealthEvent {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
+            UUID sourceCycleId,
             OffsetDateTime dateHeure,
             String description,
             UUID actorId

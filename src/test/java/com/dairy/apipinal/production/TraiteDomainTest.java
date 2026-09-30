@@ -21,6 +21,7 @@ class TraiteDomainTest {
                         UUID.randomUUID(),
                         UUID.randomUUID(),
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         OffsetDateTime.now(),
                         TypeTraite.MATIN,
                         new BigDecimal("-1"),
@@ -33,6 +34,7 @@ class TraiteDomainTest {
     void shouldAcceptZeroQuantity() {
 
         Traite traite = new Traite(
+                UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),

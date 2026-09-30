@@ -9,5 +9,19 @@ public record AnimalReference(
         UUID raceId,
         String identifiant,
         String nom,
-        String statut
-) {}
+        String statut,
+        String sexe
+) {
+    public AnimalReference(
+            UUID id,
+            UUID tenantId,
+            UUID exploitationId,
+            UUID raceId,
+            String identifiant,
+            String nom,
+            String statut
+    ) {
+        this(id, tenantId, exploitationId, raceId, identifiant, nom, statut, null);
+    }
+}
+

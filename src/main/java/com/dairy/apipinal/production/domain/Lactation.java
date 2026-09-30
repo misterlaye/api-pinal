@@ -31,6 +31,9 @@ public class Lactation {
     @Column(name = "animal_id", nullable = false)
     private UUID animalId;
 
+    @Column(name = "cycle_reproduction_id")
+    private UUID cycleReproductionId;
+
     @Column(name = "date_debut", nullable = false)
     private LocalDate dateDebut;
 
@@ -62,7 +65,9 @@ public class Lactation {
 
     public Lactation(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
+            UUID cycleReproductionId,
             LocalDate dateDebut,
             UUID actorId
     ) {
@@ -72,8 +77,14 @@ public class Lactation {
             );
         }
 
+        if (exploitationId == null) {
+            throw new IllegalArgumentException("L'exploitation est obligatoire.");
+        }
+
         this.tenantId = tenantId;
+        this.exploitationId = exploitationId;
         this.animalId = animalId;
+        this.cycleReproductionId = cycleReproductionId;
         this.dateDebut = dateDebut;
         this.statut = StatutLactation.EN_COURS;
 
@@ -83,6 +94,16 @@ public class Lactation {
         this.updatedAt = now;
         this.createdBy = actorId;
         this.updatedBy = actorId;
+    }
+
+    public Lactation(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID animalId,
+            LocalDate dateDebut,
+            UUID actorId
+    ) {
+        this(tenantId, exploitationId, animalId, null, dateDebut, actorId);
     }
 
     public void terminer(LocalDate dateFin, UUID actorId) {
@@ -131,5 +152,9 @@ public class Lactation {
 
     public StatutLactation getStatut() {
         return statut;
+    }
+
+    public UUID getCycleReproductionId() {
+        return cycleReproductionId;
     }
 }

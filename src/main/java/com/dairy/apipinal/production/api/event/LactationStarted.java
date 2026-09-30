@@ -7,5 +7,6 @@ public record LactationStarted(
         UUID lactationId,
         UUID animalId,
         UUID tenantId,
+        UUID exploitationId,
         LocalDate dateDebut
 ) {}

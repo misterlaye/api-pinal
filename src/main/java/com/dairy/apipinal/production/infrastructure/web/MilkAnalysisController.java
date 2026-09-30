@@ -20,13 +20,16 @@ import java.util.UUID;
 public class MilkAnalysisController {
 
     private final EnregistrerAnalyseLait enregistrerAnalyseLait;
+    private final com.dairy.apipinal.production.domain.AnalyseLaitRepository analyseLaitRepository;
     private final TenantContext tenantContext;
 
     public MilkAnalysisController(
             EnregistrerAnalyseLait enregistrerAnalyseLait,
+            com.dairy.apipinal.production.domain.AnalyseLaitRepository analyseLaitRepository,
             TenantContext tenantContext
     ) {
         this.enregistrerAnalyseLait = enregistrerAnalyseLait;
+        this.analyseLaitRepository = analyseLaitRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -50,6 +53,16 @@ public class MilkAnalysisController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(AnalyseLaitResponse.from(analyse));
+    }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<AnalyseLaitResponse>> getAnalyses(@PathVariable UUID lactationId) {
+        return ResponseEntity.ok(
+                analyseLaitRepository.findAllByLactationIdOrderByDateAnalyseDesc(lactationId)
+                        .stream()
+                        .map(AnalyseLaitResponse::from)
+                        .toList()
+        );
     }
 }
 

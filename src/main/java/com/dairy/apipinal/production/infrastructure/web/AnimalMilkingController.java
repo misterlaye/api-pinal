@@ -34,6 +34,7 @@ public class AnimalMilkingController {
         Traite traite = recordAnimalMilking.execute(
                 new RecordAnimalMilking.Command(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         animalId,
                         tenantContext.currentUserId(),
                         request.dateHeure(),

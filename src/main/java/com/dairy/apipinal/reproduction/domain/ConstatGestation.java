@@ -1,5 +1,6 @@
 package com.dairy.apipinal.reproduction.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
 import java.time.LocalDate;
@@ -7,28 +8,33 @@ import java.time.LocalDate;
 @Embeddable
 public class ConstatGestation {
 
-    private LocalDate constatDate;
-    private String constatResultat;
-    private String constatVeterinaire;
+    @Column(name = "date_constat", nullable = false)
+    private LocalDate date;
+
+    @Column(name = "resultat", nullable = false, length = 20)
+    private String resultat;
+
+    @Column(name = "veterinaire", length = 100)
+    private String veterinaire;
 
     protected ConstatGestation() {
     }
 
     public ConstatGestation(LocalDate date, String resultat, String veterinaire) {
-        this.constatDate = date;
-        this.constatResultat = resultat;
-        this.constatVeterinaire = veterinaire;
+        this.date = date;
+        this.resultat = resultat;
+        this.veterinaire = veterinaire;
     }
 
     public LocalDate getDate() {
-        return constatDate;
+        return date;
     }
 
     public String getResultat() {
-        return constatResultat;
+        return resultat;
     }
 
     public String getVeterinaire() {
-        return constatVeterinaire;
+        return veterinaire;
     }
 }

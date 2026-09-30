@@ -76,7 +76,9 @@ public class AnimalQueriesImpl implements AnimalQueries {
                 animal.getRaceId(),
                 animal.getIdentifiant(),
                 animal.getNom(),
-                animal.getStatut().name()
+                animal.getStatut().name(),
+                animal.getSexe() != null ? animal.getSexe().name() : null
         );
+
     }
 }

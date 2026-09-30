@@ -20,17 +20,20 @@ public class LactationController {
     private final StartLactation startLactation;
     private final GetLactation getLactation;
     private final TerminerLactation terminerLactation;
+    private final com.dairy.apipinal.production.infrastructure.persistence.LactationRepository lactationRepository;
     private final TenantContext tenantContext;
 
     public LactationController(
             StartLactation startLactation,
             GetLactation getLactation,
             TerminerLactation terminerLactation,
+            com.dairy.apipinal.production.infrastructure.persistence.LactationRepository lactationRepository,
             TenantContext tenantContext
     ) {
         this.startLactation = startLactation;
         this.getLactation = getLactation;
         this.terminerLactation = terminerLactation;
+        this.lactationRepository = lactationRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -42,7 +45,9 @@ public class LactationController {
         Lactation lactation = startLactation.execute(
                 new StartLactation.Command(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         request.animalId(),
+                        null, // cycleId
                         request.dateDebut(),
                         tenantContext.currentUserId()
                 )
@@ -85,6 +90,18 @@ public class LactationController {
         );
 
         return ResponseEntity.ok(LactationResponse.from(lactation));
+    }
+
+    @GetMapping("/animals/{animalId}/active")
+    public ResponseEntity<LactationResponse> getActiveLactation(@PathVariable UUID animalId) {
+        return lactationRepository.findByAnimalIdAndTenantIdAndStatut(
+                        animalId,
+                        tenantContext.currentTenantId(),
+                        com.dairy.apipinal.production.domain.StatutLactation.EN_COURS
+                )
+                .map(LactationResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     public record TarirRequest(LocalDate dateFin) {}

@@ -41,6 +41,12 @@ public class StartLactation {
             );
         }
 
+        if (!animal.exploitationId().equals(command.exploitationId())) {
+            throw new IllegalArgumentException(
+                    "L'animal n'appartient pas à cette exploitation."
+            );
+        }
+
         lactationRepository.findByAnimalIdAndTenantIdAndStatut(
                 command.animalId(),
                 command.tenantId(),
@@ -58,7 +64,9 @@ public class StartLactation {
 
         Lactation lactation = new Lactation(
                 command.tenantId(),
+                command.exploitationId(),
                 command.animalId(),
+                command.cycleId(), // Pass cycleId
                 command.dateDebut(),
                 command.actorId()
         );
@@ -70,6 +78,7 @@ public class StartLactation {
                         saved.getId(),
                         saved.getAnimalId(),
                         saved.getTenantId(),
+                        saved.getExploitationId(),
                         saved.getDateDebut()
                 )
         );
@@ -79,7 +88,9 @@ public class StartLactation {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
+            UUID cycleId,
             LocalDate dateDebut,
             UUID actorId
     ) {

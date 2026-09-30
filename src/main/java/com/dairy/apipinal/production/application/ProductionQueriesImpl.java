@@ -91,12 +91,25 @@ public class ProductionQueriesImpl implements ProductionQueries {
     ) {
         validatePeriod(dateDebut, dateFinExclusive);
 
+        UUID tenantId = tenantContext.currentTenantId();
+        UUID exploitationId = tenantContext.currentExploitationId();
+
+        if (exploitationId != null) {
+            return traiteRepository.sumQuantiteKgByExploitationAndPeriod(
+                    tenantId,
+                    exploitationId,
+                    dateDebut,
+                    dateFinExclusive
+            );
+        }
+
         return traiteRepository.sumQuantiteKgByTenantAndPeriod(
-                tenantContext.currentTenantId(),
+                tenantId,
                 dateDebut,
                 dateFinExclusive
         );
     }
+
 
     private void validatePeriod(
             OffsetDateTime dateDebut,

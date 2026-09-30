@@ -49,6 +49,9 @@ public class Animal {
     @Column(name = "pere_identifiant", length = 100)
     private String pereIdentifiant;
 
+    @Column(name = "cycle_reproduction_id")
+    private UUID cycleReproductionId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatutAnimal statut;
@@ -85,6 +88,9 @@ public class Animal {
             String pereIdentifiant,
             UUID actorId
     ) {
+        if (exploitationId == null) {
+            throw new IllegalArgumentException("L'exploitation est obligatoire.");
+        }
         this.tenantId = tenantId;
         this.exploitationId = exploitationId;
         this.raceId = raceId;
@@ -99,6 +105,39 @@ public class Animal {
 
         OffsetDateTime now = OffsetDateTime.now();
 
+        this.createdAt = now;
+        this.updatedAt = now;
+        this.createdBy = actorId;
+        this.updatedBy = actorId;
+    }
+
+    public Animal(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID raceId,
+            String identifiant,
+            String nom,
+            LocalDate dateNaissance,
+            SexeAnimal sexe,
+            StatutAnimal statut,
+            UUID actorId
+    ) {
+        if (exploitationId == null) {
+            throw new IllegalArgumentException("L'exploitation est obligatoire.");
+        }
+        this.tenantId = tenantId;
+        this.exploitationId = exploitationId;
+        this.raceId = raceId;
+        this.identifiant = identifiant;
+        this.nom = nom;
+        this.dateNaissance = dateNaissance;
+        this.sexe = sexe != null ? sexe : SexeAnimal.INCONNU;
+        this.statut = statut;
+
+        // Note: Race is mandatory in DB, we should probably set a default or allow null if we change DB.
+        // Wait, raceId is mandatory. For calf, we need raceId.
+        // The listener doesn't have raceId. I should add it to constructor and listener. Let me add raceId here.
+        OffsetDateTime now = OffsetDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
         this.createdBy = actorId;
@@ -143,6 +182,18 @@ public class Animal {
         this.statut = newStatus;
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = actorId;
+    }
+
+    public void definirMere(UUID mereId) {
+        this.mereId = mereId;
+    }
+
+    public void definirPere(String pereIdentifiant) {
+        this.pereIdentifiant = pereIdentifiant;
+    }
+
+    public void definirCycleReproductionId(UUID cycleReproductionId) {
+        this.cycleReproductionId = cycleReproductionId;
     }
 
     private void ensureEditable() {
@@ -199,5 +250,9 @@ public class Animal {
 
     public String getPereIdentifiant() {
         return pereIdentifiant;
+    }
+
+    public UUID getCycleReproductionId() {
+        return cycleReproductionId;
     }
 }

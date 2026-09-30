@@ -40,6 +40,7 @@ public class EnregistrerTraiteLot {
             if (lactation != null && item.quantiteKg() != null && item.quantiteKg().signum() > 0) {
                 Traite traite = recordMilking.execute(new RecordMilking.Command(
                         command.tenantId(),
+                        command.exploitationId(),
                         lactation.getId(),
                         command.auteurId(),
                         command.dateHeure() != null ? command.dateHeure() : now,
@@ -60,6 +61,7 @@ public class EnregistrerTraiteLot {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID auteurId,
             OffsetDateTime dateHeure,
             TypeTraite type,
