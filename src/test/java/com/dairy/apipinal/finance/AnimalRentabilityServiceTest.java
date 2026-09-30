@@ -60,6 +60,7 @@ class AnimalRentabilityServiceTest {
     void shouldCalculateAnimalRentabilityWithHistoricalMilkPrices() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
 
         LocalDate jour1 = LocalDate.of(2026, 9, 1);
@@ -114,16 +115,14 @@ class AnimalRentabilityServiceTest {
         ).thenReturn(new BigDecimal("20.000"));
 
         PrixVenteLait prixJour1 =
-                new PrixVenteLait(
-                        tenantId,
+                new PrixVenteLait(tenantId, exploitationId,
                         new BigDecimal("600.00"),
                         jour1,
                         jour1
                 );
 
         PrixVenteLait prixJour2 =
-                new PrixVenteLait(
-                        tenantId,
+                new PrixVenteLait(tenantId, exploitationId,
                         new BigDecimal("650.00"),
                         jour2,
                         jour2
@@ -216,6 +215,7 @@ class AnimalRentabilityServiceTest {
     void shouldCalculateNegativeMarginWhenAnimalHasFeedCostButNoMilkProduction() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID animalId = UUID.randomUUID();
 
         LocalDate jour = LocalDate.of(2026, 9, 1);

@@ -18,6 +18,7 @@ class PrixVenteLaitDomainTest {
         assertDoesNotThrow(() ->
                 new PrixVenteLait(
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         new BigDecimal("575.00"),
                         LocalDate.of(2026, 1, 1),
                         null
@@ -31,6 +32,7 @@ class PrixVenteLaitDomainTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new PrixVenteLait(
+                        UUID.randomUUID(),
                         UUID.randomUUID(),
                         BigDecimal.ZERO,
                         LocalDate.of(2026, 1, 1),
@@ -46,6 +48,7 @@ class PrixVenteLaitDomainTest {
                 IllegalArgumentException.class,
                 () -> new PrixVenteLait(
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         new BigDecimal("-10.00"),
                         LocalDate.of(2026, 1, 1),
                         null
@@ -59,6 +62,7 @@ class PrixVenteLaitDomainTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new PrixVenteLait(
+                        UUID.randomUUID(),
                         UUID.randomUUID(),
                         new BigDecimal("575.00"),
                         LocalDate.of(2026, 9, 30),

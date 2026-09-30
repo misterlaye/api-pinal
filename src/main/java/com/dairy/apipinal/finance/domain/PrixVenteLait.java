@@ -45,6 +45,7 @@ public class PrixVenteLait {
 
     public PrixVenteLait(
             UUID tenantId,
+            UUID exploitationId,
             BigDecimal prixParLitre,
             LocalDate dateDebut,
             LocalDate dateFin
@@ -52,6 +53,10 @@ public class PrixVenteLait {
         this.tenantId = Objects.requireNonNull(
                 tenantId,
                 "Le tenant est obligatoire."
+        );
+        this.exploitationId = Objects.requireNonNull(
+                exploitationId,
+                "L'exploitation est obligatoire."
         );
 
         this.prixParLitre = requirePositivePrice(prixParLitre);
@@ -103,4 +108,11 @@ public class PrixVenteLait {
     public LocalDate getDateFin() {
         return dateFin;
     }
-}
+
+    public void cloturer(LocalDate dateFin) {
+        if (dateFin == null || dateFin.isBefore(this.dateDebut)) {
+            throw new IllegalArgumentException("La date de fin ne peut pas être antérieure à la date de début.");
+        }
+        this.dateFin = dateFin;
+    }
+}

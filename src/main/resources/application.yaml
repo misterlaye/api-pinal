@@ -43,3 +43,11 @@ pinal:
     expiration: 300
     max-attempts: 5
     code-length: 6
+
+finance:
+  lait:
+    # Hypothèse métier de conversion : Densité moyenne du lait de vache (1.03 kg/L).
+    # Formule : Volume (Litres) = Masse (kg) * (1 / 1.03) = Masse * 0.971
+    # Ce paramètre définit explicitement le multiplicateur pour convertir des kg en litres.
+    litres-par-kg: 0.971
+

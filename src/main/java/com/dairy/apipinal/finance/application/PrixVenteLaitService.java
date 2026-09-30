@@ -29,13 +29,24 @@ public class PrixVenteLaitService {
     public PrixVenteLait create(CreatePrixVenteLait command) {
 
         UUID tenantId = tenantContext.currentTenantId();
+        UUID exploitationId = tenantContext.currentExploitationId();
 
         validatePeriod(
                 command.dateDebut(),
                 command.dateFin()
         );
 
+        // Clôturer automatiquement le prix ouvert précédent s'il existe et a débuté avant
+        List<PrixVenteLait> previousPrices = repository.findAllByTenantIdOrderByDateDebutDesc(tenantId);
+        for (PrixVenteLait prev : previousPrices) {
+            if (prev.getDateFin() == null && prev.getDateDebut().isBefore(command.dateDebut())) {
+                prev.cloturer(command.dateDebut().minusDays(1));
+                repository.save(prev);
+            }
+        }
+
         boolean overlapping;
+
 
         if (command.dateFin() == null) {
             overlapping =
@@ -60,6 +71,7 @@ public class PrixVenteLaitService {
 
         PrixVenteLait price = new PrixVenteLait(
                 tenantId,
+                exploitationId,
                 command.prixParLitre(),
                 command.dateDebut(),
                 command.dateFin()

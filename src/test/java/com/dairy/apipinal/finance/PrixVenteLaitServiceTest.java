@@ -36,12 +36,13 @@ class PrixVenteLaitServiceTest {
     void shouldCreateMilkSalePriceWithClosedPeriod() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
 
         LocalDate debut = LocalDate.of(2026, 9, 1);
         LocalDate fin = LocalDate.of(2026, 9, 30);
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(repository.existsOverlappingPeriodWithEndDate(
                 tenantId,
@@ -50,8 +51,7 @@ class PrixVenteLaitServiceTest {
         )).thenReturn(false);
 
         PrixVenteLait saved =
-                new PrixVenteLait(
-                        tenantId,
+                new PrixVenteLait(tenantId, exploitationId,
                         new BigDecimal("600.00"),
                         debut,
                         fin
@@ -81,12 +81,13 @@ class PrixVenteLaitServiceTest {
     void shouldRejectOverlappingClosedPeriod() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
 
         LocalDate debut = LocalDate.of(2026, 9, 15);
         LocalDate fin = LocalDate.of(2026, 9, 30);
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(repository.existsOverlappingPeriodWithEndDate(
                 tenantId,
@@ -113,10 +114,11 @@ class PrixVenteLaitServiceTest {
     void shouldRejectOverlappingOpenEndedPeriod() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         LocalDate debut = LocalDate.of(2026, 9, 15);
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(repository.existsOverlappingOpenEndedPeriod(
                 tenantId,
@@ -142,18 +144,18 @@ class PrixVenteLaitServiceTest {
     void shouldRetrieveApplicablePrice() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         LocalDate date = LocalDate.of(2026, 9, 20);
 
         PrixVenteLait price =
-                new PrixVenteLait(
-                        tenantId,
+                new PrixVenteLait(tenantId, exploitationId,
                         new BigDecimal("600.00"),
                         LocalDate.of(2026, 9, 1),
                         null
                 );
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(repository.findApplicablePrice(
                 tenantId,
@@ -173,12 +175,13 @@ class PrixVenteLaitServiceTest {
     void shouldRejectInvalidPeriod() {
 
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
 
         LocalDate debut = LocalDate.of(2026, 9, 30);
         LocalDate fin = LocalDate.of(2026, 9, 1);
 
-        when(tenantContext.currentTenantId())
-                .thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         assertThrows(
                 IllegalArgumentException.class,

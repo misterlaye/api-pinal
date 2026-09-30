@@ -51,6 +51,13 @@ public class RentabiliteService {
     public CalculRentabilite calculate(
             CalculateRentabilite command
     ) {
+        CalculRentabilite calcul = calculateLive(command);
+        return calculRepository.save(calcul);
+    }
+
+    public CalculRentabilite calculateLive(
+            CalculateRentabilite command
+    ) {
         validatePeriod(
                 command.periodeDebut(),
                 command.periodeFin()
@@ -92,11 +99,6 @@ public class RentabiliteService {
                 volumeLait =
                         volumeLait.add(productionLitres);
 
-                /*
-                 * date est modifiée à la fin de chaque itération.
-                 * On utilise donc une variable locale effectivement finale
-                 * pour pouvoir l'utiliser dans le lambda de orElseThrow().
-                 */
                 LocalDate dateCourante =
                         date;
 
@@ -144,8 +146,7 @@ public class RentabiliteService {
                         finExclusive
                 );
 
-        CalculRentabilite calcul =
-                CalculRentabilite.calculate(
+        return CalculRentabilite.calculate(
                         tenantId,
                         OffsetDateTime.now(ZoneOffset.UTC),
                         command.periodeDebut(),
@@ -155,8 +156,6 @@ public class RentabiliteService {
                         feedCost.coutAlimentation(),
                         autresCharges
                 );
-
-        return calculRepository.save(calcul);
     }
 
     private void validatePeriod(

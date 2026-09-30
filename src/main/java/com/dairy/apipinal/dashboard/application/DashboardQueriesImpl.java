@@ -23,6 +23,7 @@ public class DashboardQueriesImpl implements DashboardQueries {
     private final NutritionQueries nutritionQueries;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     private final TenantContext tenantContext;
+    private com.dairy.apipinal.finance.api.MilkVolumeConversionPolicy conversionPolicy;
 
     public DashboardQueriesImpl(
             ProductionQueries productionQueries,
@@ -34,6 +35,11 @@ public class DashboardQueriesImpl implements DashboardQueries {
         this.nutritionQueries = nutritionQueries;
         this.jdbcTemplate = jdbcTemplate;
         this.tenantContext = tenantContext;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setConversionPolicy(com.dairy.apipinal.finance.api.MilkVolumeConversionPolicy conversionPolicy) {
+        this.conversionPolicy = conversionPolicy;
     }
 
     @Override
@@ -50,15 +56,6 @@ public class DashboardQueriesImpl implements DashboardQueries {
         if (todayProd == null) todayProd = BigDecimal.ZERO;
         if (last7DaysProd == null) last7DaysProd = BigDecimal.ZERO;
         if (last30DaysProd == null) last30DaysProd = BigDecimal.ZERO;
-
-        BigDecimal avgMoyenneVache = last7DaysProd.divide(new BigDecimal("7"), 2, RoundingMode.HALF_UP);
-
-        DashboardSummary.ProductionSummary production = new DashboardSummary.ProductionSummary(
-                todayProd,
-                last7DaysProd,
-                last30DaysProd,
-                avgMoyenneVache
-        );
 
         java.util.UUID tenantId = tenantContext.currentTenantId();
         java.util.UUID exploitationId = tenantContext.currentExploitationId();
@@ -78,6 +75,21 @@ public class DashboardQueriesImpl implements DashboardQueries {
                 exploitationId
         );
         if (vachesEnLactation == null) vachesEnLactation = 0L;
+
+        BigDecimal avgMoyenneVache = BigDecimal.ZERO;
+        if (vachesEnLactation > 0 && last7DaysProd.signum() > 0) {
+            avgMoyenneVache = last7DaysProd
+                    .divide(new BigDecimal("7"), 4, RoundingMode.HALF_UP)
+                    .divide(BigDecimal.valueOf(vachesEnLactation), 2, RoundingMode.HALF_UP);
+        }
+
+        DashboardSummary.ProductionSummary production = new DashboardSummary.ProductionSummary(
+                todayProd,
+                last7DaysProd,
+                last30DaysProd,
+                avgMoyenneVache
+        );
+
 
         // Vaches taries: Femelles actives qui ont déjà eu au moins une lactation, mais n'en ont pas en cours
         Long vachesTaries = jdbcTemplate.queryForObject(
@@ -115,9 +127,14 @@ public class DashboardQueriesImpl implements DashboardQueries {
         BigDecimal margeEstimee30J = null;
 
         if (prixUnitaireLait != null) {
-            caEstime30J = last30DaysProd.multiply(prixUnitaireLait);
-            margeEstimee30J = caEstime30J.subtract(totalFeedCost30J);
+            BigDecimal litres30J = (conversionPolicy != null)
+                    ? conversionPolicy.convertKgToLitres(last30DaysProd)
+                    : last30DaysProd;
+            caEstime30J = litres30J.multiply(prixUnitaireLait).setScale(4, RoundingMode.HALF_UP);
+            margeEstimee30J = caEstime30J.subtract(totalFeedCost30J).setScale(4, RoundingMode.HALF_UP);
         }
+
+
 
         DashboardSummary.FinancialSummary finance = new DashboardSummary.FinancialSummary(
                 prixUnitaireLait,

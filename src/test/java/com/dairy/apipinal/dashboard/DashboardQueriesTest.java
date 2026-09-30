@@ -150,9 +150,10 @@ class DashboardQueriesTest {
         );
 
         assertEquals(
-                new BigDecimal("120.00"),
+                new BigDecimal("12.00"),
                 summary.production().moyenneParVacheLactationKg()
         );
+
 
         // Troupeau
         assertEquals(
