@@ -58,6 +58,7 @@ class IdentityQueriesTest {
     void shouldReturnActiveExploitationForUser() {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID expId = UUID.randomUUID();
 
         Membership membership = new Membership(userId, expId, RoleExploitation.PROPRIETAIRE);
@@ -80,6 +81,7 @@ class IdentityQueriesTest {
     void shouldReturnRequestedExploitationWhenUserHasMembership() {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID expId = UUID.randomUUID();
 
         Membership membership = new Membership(userId, expId, RoleExploitation.GERANT);
