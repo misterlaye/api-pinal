@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class AnomalyDetectorService implements AnomalyQueries {
 
         if (avgDailyLastWeek.compareTo(BigDecimal.ZERO) > 0 && todayProd.compareTo(avgDailyLastWeek.multiply(new BigDecimal("0.8"))) < 0) {
             alerts.add(new AnomalyAlert(
-                    UUID.randomUUID().toString(),
+                    stableAnomalyId("DROP_MILK_PRODUCTION"),
                     "DROP_MILK_PRODUCTION",
                     "AVERTISSEMENT",
                     "Chute globale de production laitière",
@@ -54,5 +55,11 @@ public class AnomalyDetectorService implements AnomalyQueries {
         }
 
         return alerts;
+    }
+
+    private String stableAnomalyId(String anomalyCode) {
+        String identity = tenantContext.currentTenantId() + ":"
+                + tenantContext.currentExploitationId() + ":" + anomalyCode;
+        return UUID.nameUUIDFromBytes(identity.getBytes(StandardCharsets.UTF_8)).toString();
     }
 }

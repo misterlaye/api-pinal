@@ -8,4 +8,10 @@ public interface HealthQueries {
     HealthEventReference getReference(UUID healthEventId);
 
     List<HealthEventReference> getAnimalHistory(UUID animalId);
+
+    List<HealthEventReference> getAnimalHistory(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID animalId
+    );
 }

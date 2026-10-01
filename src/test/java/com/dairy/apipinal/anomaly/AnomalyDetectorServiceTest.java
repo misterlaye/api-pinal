@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,6 +46,20 @@ class AnomalyDetectorServiceTest {
         assertFalse(alerts.isEmpty());
         assertEquals("DROP_MILK_PRODUCTION", alerts.get(0).code());
         assertEquals("AVERTISSEMENT", alerts.get(0).severite());
+    }
+
+    @Test
+    void anomalyIdentifierIsStableInsideTheSameTenantAndExploitation() {
+        when(tenantContext.currentTenantId()).thenReturn(UUID.randomUUID());
+        when(tenantContext.currentExploitationId()).thenReturn(UUID.randomUUID());
+        when(productionQueries.getTotalMilkProductionKg(any(), any()))
+                .thenReturn(new BigDecimal("10.00"), new BigDecimal("600.00"),
+                        new BigDecimal("10.00"), new BigDecimal("600.00"));
+
+        String firstId = anomalyDetectorService.detectAnomalies().getFirst().id();
+        String secondId = anomalyDetectorService.detectAnomalies().getFirst().id();
+
+        assertEquals(firstId, secondId);
     }
 
     @Test
