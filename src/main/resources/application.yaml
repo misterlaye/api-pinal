@@ -40,7 +40,7 @@ pinal:
     llm:
       api-key: ${GEMINI_API_KEY:}
       endpoint: ${GEMINI_API_ENDPOINT:https://generativelanguage.googleapis.com/v1beta}
-      model: ${GEMINI_MODEL:gemini-1.5-pro}
+      model: ${GEMINI_MODEL:gemini-3.8-flash}
       prompt-version: ${AI_COPILOT_PROMPT_VERSION:v1}
       output-schema-version: v1
   jwt:
