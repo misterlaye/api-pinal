@@ -20,4 +20,11 @@ public interface EvenementSanitaireRepository
             UUID animalId,
             UUID tenantId
     );
+
+    List<EvenementSanitaire>
+    findAllByAnimalIdAndTenantIdAndExploitationIdOrderByDateHeureDesc(
+            UUID animalId,
+            UUID tenantId,
+            UUID exploitationId
+    );
 }

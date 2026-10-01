@@ -15,6 +15,13 @@ public interface NutritionQueries {
             LocalDate date
     );
 
+    Optional<RationReference> findActiveRation(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID animalId,
+            LocalDate date
+    );
+
     Optional<RationCostReference> calculateFeedCost(
             UUID animalId,
             LocalDate date

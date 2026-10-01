@@ -65,9 +65,19 @@ public class NutritionQueriesImpl implements NutritionQueries {
             UUID animalId,
             LocalDate date
     ) {
-        UUID tenantId = tenantContext.currentTenantId();
-        UUID exploitationId = requireCurrentExploitationId();
+        return findActiveRation(
+                tenantContext.currentTenantId(), requireCurrentExploitationId(), animalId, date
+        );
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RationReference> findActiveRation(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID animalId,
+            LocalDate date
+    ) {
         return rationRepository
                 .findEffectiveRationAtDate(
                         tenantId,

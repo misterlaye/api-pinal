@@ -44,10 +44,22 @@ public class HealthQueriesImpl implements HealthQueries {
     public List<HealthEventReference> getAnimalHistory(
             UUID animalId
     ) {
+        return getAnimalHistory(
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
+                animalId
+        );
+    }
+
+    @Override
+    public List<HealthEventReference> getAnimalHistory(
+            UUID tenantId,
+            UUID exploitationId,
+            UUID animalId
+    ) {
         return repository
-                .findAllByAnimalIdAndTenantIdOrderByDateHeureDesc(
-                        animalId,
-                        tenantContext.currentTenantId()
+                .findAllByAnimalIdAndTenantIdAndExploitationIdOrderByDateHeureDesc(
+                        animalId, tenantId, exploitationId
                 )
                 .stream()
                 .map(this::toReference)
