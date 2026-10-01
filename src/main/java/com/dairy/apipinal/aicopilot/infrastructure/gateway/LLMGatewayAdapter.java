@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
@@ -26,13 +27,13 @@ public class LLMGatewayAdapter implements AIInterpreter {
     private CopilotExecutionMetrics lastExecutionMetrics;
     private String modelVersionOverride;
 
+    @Autowired
     public LLMGatewayAdapter(
             PromptBuilder promptBuilder,
             GeminiProperties properties,
-            RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper
     ) {
-        this(promptBuilder, properties, restClientBuilder.build(), objectMapper);
+        this(promptBuilder, properties, RestClient.builder().build(), objectMapper);
     }
 
     LLMGatewayAdapter(

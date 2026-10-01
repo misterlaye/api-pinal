@@ -25,7 +25,6 @@ public record EvidenceContext(
         String canonicalRepresentation = String.join("|",
                 anomaly.id(), anomaly.code(), String.valueOf(anomaly.animalId()),
                 anomaly.titre(), anomaly.description(),
-                HashUtils.formatDateTimeCanonical(anomaly.dateDetection()),
                 evidenceRepresentation);
         return HashUtils.sha256(canonicalRepresentation);
     }

@@ -3,6 +3,7 @@ package com.dairy.apipinal.aicopilot.domain;
 import com.dairy.apipinal.aicopilot.api.Evidence;
 import com.dairy.apipinal.aicopilot.api.SupportLevel;
 import com.dairy.apipinal.aicopilot.api.TemporalRelation;
+import com.dairy.apipinal.aicopilot.infrastructure.providers.AnomalyEvidenceProvider;
 import com.dairy.apipinal.anomaly.api.AnomalyAlert;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,38 @@ class EvidenceContextTest {
         EvidenceContext ctx2 = EvidenceContext.build(anomaly, List.of(ev2));
 
         assertNotEquals(ctx1.contextHash(), ctx2.contextHash());
+    }
+
+    @Test
+    void contextHash_ignores_a_recomputed_detection_timestamp_when_business_content_is_unchanged() {
+        UUID animalId = UUID.randomUUID();
+        AnomalyAlert first = new AnomalyAlert(
+                "id1", "CODE", "HIGH", "Titre", "Desc", animalId, OffsetDateTime.parse("2026-10-01T10:00:00Z"));
+        AnomalyAlert recomputed = new AnomalyAlert(
+                "id1", "CODE", "HIGH", "Titre", "Desc", animalId, OffsetDateTime.parse("2026-10-01T10:00:05Z"));
+        Evidence evidence = createEvidence("ev-1", "digest-1");
+
+        assertEquals(
+                EvidenceContext.build(first, List.of(evidence)).contextHash(),
+                EvidenceContext.build(recomputed, List.of(evidence)).contextHash()
+        );
+    }
+
+    @Test
+    void anomalyEvidence_identity_is_stable_when_only_detection_timestamp_is_recomputed() {
+        UUID tenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.randomUUID();
+        AnomalyAlert first = new AnomalyAlert(
+                "id1", "CODE", "HIGH", "Titre", "Desc", null, OffsetDateTime.parse("2026-10-01T10:00:00Z"));
+        AnomalyAlert recomputed = new AnomalyAlert(
+                "id1", "CODE", "HIGH", "Titre", "Desc", null, OffsetDateTime.parse("2026-10-01T10:00:05Z"));
+        AnomalyEvidenceProvider provider = new AnomalyEvidenceProvider();
+
+        Evidence firstEvidence = provider.gatherEvidences(tenantId, exploitationId, null, first).getFirst();
+        Evidence recomputedEvidence = provider.gatherEvidences(tenantId, exploitationId, null, recomputed).getFirst();
+
+        assertEquals(firstEvidence.evidenceId(), recomputedEvidence.evidenceId());
+        assertEquals(firstEvidence.contentDigest(), recomputedEvidence.contentDigest());
     }
 
     private Evidence createEvidence(String id, String digest) {

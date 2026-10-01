@@ -21,9 +21,8 @@ public class AnomalyEvidenceProvider implements EvidenceProvider {
 
     @Override
     public List<Evidence> gatherEvidences(UUID tenantId, UUID exploitationId, UUID animalId, AnomalyAlert anomaly) {
-        String observation = HashUtils.formatDateTimeCanonical(anomaly.dateDetection());
         String evidenceId = HashUtils.sha256(
-                "ANOMALY|ANOMALY_ALERT|" + anomaly.id() + "|PRODUCTION_ANOMALY|v1|" + observation
+                "ANOMALY|ANOMALY_ALERT|" + anomaly.id() + "|PRODUCTION_ANOMALY|v1"
         );
         Map<String, String> values = Map.of(
                 "code", anomaly.code(),
