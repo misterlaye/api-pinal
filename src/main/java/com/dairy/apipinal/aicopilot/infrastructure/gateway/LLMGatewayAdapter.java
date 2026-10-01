@@ -109,10 +109,11 @@ public class LLMGatewayAdapter implements AIInterpreter {
         try {
             String response = restClient.post()
                     .uri(normalizeEndpoint(properties.getEndpoint())
-                                    + "/models/{model}:generateContent?key={apiKey}",
-                            properties.getModel(), properties.getApiKey())
+                                    + "/models/{model}:generateContent",
+                            properties.getModel())
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
+                    .header("x-goog-api-key", properties.getApiKey())
                     .body(requestPayload(systemPrompt, userPrompt))
                     .retrieve()
                     .body(String.class);
