@@ -106,9 +106,12 @@ public class FinanceQueriesImpl implements FinanceQueries {
             }
         }
 
-        BigDecimal sumRecentCharges = chargeRepository.findAllByTenantIdAndDateGreaterThanEqualAndDateLessThanOrderByDateDesc(
-                tenantId, startOfMonth, today.plusDays(1))
-                .stream()
+        // Fetch charges once and reuse for both sum and transactions list
+        List<ChargeExploitation> recentCharges = chargeRepository
+                .findAllByTenantIdAndDateGreaterThanEqualAndDateLessThanOrderByDateDesc(
+                        tenantId, startOfMonth, today.plusDays(1));
+        
+        BigDecimal sumRecentCharges = recentCharges.stream()
                 .map(ChargeExploitation::getMontant)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -138,10 +141,7 @@ public class FinanceQueriesImpl implements FinanceQueries {
             
         Rentability rentability = new Rentability(marge, netMargin, 0);
 
-        // 2. Fetch Recent Charges for this month
-        List<ChargeExploitation> recentCharges = chargeRepository.findAllByTenantIdAndDateGreaterThanEqualAndDateLessThanOrderByDateDesc(
-                tenantId, startOfMonth, today.plusDays(1));
-
+        // 2. Recent Charges - reuse the charges already fetched above
         List<TransactionResponse> transactions = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         for (ChargeExploitation c : recentCharges) {
@@ -151,19 +151,20 @@ public class FinanceQueriesImpl implements FinanceQueries {
             ));
         }
         
-        // 3. Historical Data for Charts
+        // 3. Historical Data for Charts - Use Top4 instead of loading all snapshots
         List<String> labels = new ArrayList<>();
         List<BigDecimal> revenues = new ArrayList<>();
         List<BigDecimal> charges = new ArrayList<>();
         
-        List<CalculRentabilite> allSnapshots = calculRentabiliteRepository.findAllByTenantIdOrderByDateCalculDesc(tenantId);
+        List<CalculRentabilite> recentSnapshots = calculRentabiliteRepository
+                .findTop4ByTenantIdOrderByDateCalculDesc(tenantId);
         
         for (int i = 3; i >= 1; i--) {
             YearMonth pastMonth = currentMonth.minusMonths(i);
             labels.add("Mois-" + i);
             
             // Try to find snapshot for that month
-            Optional<CalculRentabilite> snapshot = allSnapshots.stream()
+            Optional<CalculRentabilite> snapshot = recentSnapshots.stream()
                     .filter(c -> YearMonth.from(c.getPeriodeDebut()).equals(pastMonth))
                     .findFirst();
                     

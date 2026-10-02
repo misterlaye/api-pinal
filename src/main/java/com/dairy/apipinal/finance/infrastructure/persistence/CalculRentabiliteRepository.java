@@ -15,4 +15,11 @@ public interface CalculRentabiliteRepository
     
     List<CalculRentabilite>
     findAllByTenantIdOrderByDateCalculDesc(UUID tenantId);
+    
+    /**
+     * Find the top 4 most recent rentabilite calculations for a tenant.
+     * Used for dashboard performance optimization.
+     */
+    List<CalculRentabilite>
+    findTop4ByTenantIdOrderByDateCalculDesc(UUID tenantId);
 }
