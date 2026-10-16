@@ -68,33 +68,30 @@ public class ProductionDashboardQueriesImpl implements ProductionDashboardQuerie
                 100, "Donnée réelle"
         );
 
-        // Chart Data (Last 7 days)
+        // Chart Data (Last 7 days + previous 7 days), totals per day in a single query
+        java.util.Map<Integer, Double> totalsByDaysAgo = new java.util.HashMap<>();
+        jdbcTemplate.query(
+                "SELECT CURRENT_DATE - CAST(t.date_heure AS DATE) AS days_ago, SUM(t.quantite_kg) AS total FROM traite t " +
+                "JOIN lactation l ON l.id = t.lactation_id " +
+                "JOIN animal a ON a.id = l.animal_id " +
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? " +
+                "AND CAST(t.date_heure AS DATE) BETWEEN CURRENT_DATE - 13 AND CURRENT_DATE " +
+                "GROUP BY 1",
+                rs -> {
+                    totalsByDaysAgo.put(rs.getInt("days_ago"), rs.getDouble("total"));
+                },
+                tenantId, exploitationId
+        );
+
         List<String> labels = new java.util.ArrayList<>();
         List<Double> currentWeek = new java.util.ArrayList<>();
         List<Double> previousWeek = new java.util.ArrayList<>();
 
         for (int i = 6; i >= 0; i--) {
-            final int daysAgo = i;
             String label = java.time.LocalDate.now().minusDays(i).format(java.time.format.DateTimeFormatter.ofPattern("EEE"));
             labels.add(label);
-
-            Double dayTotal = jdbcTemplate.queryForObject(
-                    "SELECT SUM(t.quantite_kg) FROM traite t " +
-                    "JOIN lactation l ON l.id = t.lactation_id " +
-                    "JOIN animal a ON a.id = l.animal_id " +
-                    "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE - INTERVAL '" + daysAgo + " days'",
-                    Double.class, tenantId, exploitationId
-            );
-            currentWeek.add(dayTotal != null ? dayTotal : 0.0);
-
-            Double prevDayTotal = jdbcTemplate.queryForObject(
-                    "SELECT SUM(t.quantite_kg) FROM traite t " +
-                    "JOIN lactation l ON l.id = t.lactation_id " +
-                    "JOIN animal a ON a.id = l.animal_id " +
-                    "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AS DATE) = CURRENT_DATE - INTERVAL '" + (daysAgo + 7) + " days'",
-                    Double.class, tenantId, exploitationId
-            );
-            previousWeek.add(prevDayTotal != null ? prevDayTotal : 0.0);
+            currentWeek.add(totalsByDaysAgo.getOrDefault(i, 0.0));
+            previousWeek.add(totalsByDaysAgo.getOrDefault(i + 7, 0.0));
         }
 
         ProductionDashboardSummary.ChartData chartData = new ProductionDashboardSummary.ChartData(

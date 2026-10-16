@@ -26,11 +26,9 @@ CREATE INDEX IF NOT EXISTS idx_rentabilite_tenant_periode
 -- Index for traite queries with date range (used by rentabiliteService.calculateLive)
 -- Supports: Production queries filtered by tenant and date
 CREATE INDEX IF NOT EXISTS idx_traite_tenant_date 
-    ON traite(tenant_id, date_traite DESC)
-    WHERE date_traite IS NOT NULL;
+    ON traite(tenant_id, date_heure DESC)
+    WHERE date_heure IS NOT NULL;
 
--- Index for vente_lait queries (used by rentabiliteService for revenue calculation)
--- Supports: Revenue queries filtered by tenant and date
-CREATE INDEX IF NOT EXISTS idx_vente_lait_tenant_date 
-    ON vente_lait(tenant_id, date_vente DESC)
-    WHERE date_vente IS NOT NULL;
+-- Note: vente_lait table doesn't exist in current schema
+-- Revenue calculation uses prix_vente_lait configuration instead
+

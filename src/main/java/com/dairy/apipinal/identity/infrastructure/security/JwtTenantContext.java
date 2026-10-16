@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class JwtTenantContext implements TenantContext {
 
     private static final String EXPLOITATION_HEADER = "X-Exploitation-ID";
+    private static final String RESOLVED_ATTRIBUTE_PREFIX = JwtTenantContext.class.getName() + ".resolved:";
 
     private final IdentityQueries identityQueries;
 
@@ -51,14 +53,32 @@ public class JwtTenantContext implements TenantContext {
         return getExploitationInfo().role().name();
     }
 
+    /**
+     * Résolu en base au plus une fois par requête HTTP et par couple (utilisateur, exploitation
+     * demandée) : un même traitement interroge le contexte des dizaines de fois. Seule une
+     * résolution réussie est mémorisée ; hors requête HTTP (tâches asynchrones), aucune mémorisation.
+     */
     private ExploitationInfo getExploitationInfo() {
         UUID userId = currentUserId();
         Optional<UUID> requestedExploitationId = getRequestedExploitationIdFromHeader();
 
-        return identityQueries.getActiveExploitationForUser(userId, requestedExploitationId)
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        String cacheKey = RESOLVED_ATTRIBUTE_PREFIX + userId + ":"
+                + requestedExploitationId.map(UUID::toString).orElse("");
+        if (attributes != null
+                && attributes.getAttribute(cacheKey, RequestAttributes.SCOPE_REQUEST) instanceof ExploitationInfo cached) {
+            return cached;
+        }
+
+        ExploitationInfo info = identityQueries.getActiveExploitationForUser(userId, requestedExploitationId)
                 .orElseThrow(() -> new IllegalStateException(
                         "L'utilisateur " + userId + " n'a accès à aucune exploitation active."
                 ));
+
+        if (attributes != null) {
+            attributes.setAttribute(cacheKey, info, RequestAttributes.SCOPE_REQUEST);
+        }
+        return info;
     }
 
     private Optional<UUID> getRequestedExploitationIdFromHeader() {

@@ -3,7 +3,6 @@ package com.dairy.apipinal.nutrition;
 import com.dairy.apipinal.nutrition.api.RationCostReference;
 import com.dairy.apipinal.nutrition.api.RationReference;
 import com.dairy.apipinal.nutrition.application.NutritionQueriesImpl;
-import com.dairy.apipinal.nutrition.application.RationCostResult;
 import com.dairy.apipinal.nutrition.application.RationService;
 import com.dairy.apipinal.nutrition.application.CalculateRationCost;
 import com.dairy.apipinal.nutrition.domain.OrigineRation;
@@ -19,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -334,44 +332,19 @@ class NutritionQueriesTest {
 
         UUID tenantId = UUID.randomUUID();
         UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
-        UUID animalId = UUID.randomUUID();
-        UUID rationId = UUID.randomUUID();
 
         LocalDate jour1 = LocalDate.of(2026, 9, 1);
-        LocalDate jour2 = LocalDate.of(2026, 9, 2);
         LocalDate finExclusive = LocalDate.of(2026, 9, 3);
-
-        Ration ration =
-                mock(Ration.class);
-
-        when(ration.getId())
-                .thenReturn(rationId);
-
-        when(ration.getAnimalId())
-                .thenReturn(animalId);
 
         when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(rationRepository.findAllEffectiveRationsAtDate(tenantId, exploitationId, jour1)).thenReturn(List.of(ration));
-
-        when(rationRepository.findAllEffectiveRationsAtDate(tenantId, exploitationId, jour2)).thenReturn(List.of(ration));
-
-        when(rationService.calculateCost(any()))
-                .thenReturn(
-                        mockRationCostResult(
-                                rationId,
-                                jour1,
-                                new BigDecimal("3500.00")
-                        ),
-                        mockRationCostResult(
-                                rationId,
-                                jour2,
-                                new BigDecimal("3700.00")
-                        )
-                );
+        // Le calcul jour par jour est délégué à RationService (vérifié en base réelle
+        // par NutritionHistoricalCostIntegrationTest et FeedCostPeriodEquivalenceIntegrationTest).
+        when(rationService.calculateTotalCostOverPeriod(tenantId, exploitationId, jour1, finExclusive))
+                .thenReturn(new BigDecimal("7200.00"));
 
         NutritionQueriesImpl queries =
                 new NutritionQueriesImpl(
@@ -406,18 +379,5 @@ class NutritionQueriesTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("exploitation courante");
         verifyNoInteractions(rationRepository, rationService);
-    }
-
-    private RationCostResult mockRationCostResult(
-            UUID rationId,
-            LocalDate date,
-            BigDecimal cout
-    ) {
-        return new RationCostResult(
-                rationId,
-                date,
-                List.of(),
-                cout
-        );
     }
 }

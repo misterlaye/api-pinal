@@ -12,9 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class RationService {
@@ -274,5 +278,85 @@ public class RationService {
                 costLines,
                 total
         );
+    }
+
+    /**
+     * Coût alimentaire cumulé de l'exploitation sur [dateDebut, dateFinExclusive).
+     * Résultat identique à la somme de calculateCost(...) pour chaque ration
+     * effective chaque jour, mais calculé en mémoire à partir de deux requêtes
+     * (rations + lignes, prix de la période) au lieu de plusieurs par jour et par ration.
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calculateTotalCostOverPeriod(
+            UUID tenantId,
+            UUID exploitationId,
+            LocalDate dateDebut,
+            LocalDate dateFinExclusive
+    ) {
+        LocalDate dernierJour = dateFinExclusive.minusDays(1);
+
+        List<Ration> rations = rationRepository.findAllEffectiveRationsOverlappingPeriod(
+                tenantId,
+                exploitationId,
+                dateDebut,
+                dernierJour
+        );
+
+        Set<UUID> alimentIds = rations.stream()
+                .flatMap(ration -> ration.getLignes().stream())
+                .map(LigneRation::getAlimentId)
+                .collect(Collectors.toSet());
+
+        Map<UUID, List<PrixAliment>> prixParAliment = alimentIds.isEmpty()
+                ? Map.of()
+                : prixAlimentRepository
+                        .findAllOverlappingPeriod(alimentIds, dateDebut, dernierJour)
+                        .stream()
+                        .collect(Collectors.groupingBy(PrixAliment::getAlimentId));
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (LocalDate date = dateDebut; date.isBefore(dateFinExclusive); date = date.plusDays(1)) {
+            for (Ration ration : rations) {
+                if (!estEffective(ration, date)) {
+                    continue;
+                }
+                for (LigneRation ligne : ration.getLignes()) {
+                    PrixAliment prix = prixApplicable(
+                            prixParAliment.getOrDefault(ligne.getAlimentId(), List.of()),
+                            ligne.getAlimentId(),
+                            date
+                    );
+                    total = total.add(ligne.getQuantite().multiply(prix.getPrixUnitaire()));
+                }
+            }
+        }
+
+        return total;
+    }
+
+    private static boolean estEffective(Ration ration, LocalDate date) {
+        return !ration.getDateDebut().isAfter(date)
+                && (ration.getDateFin() == null || !ration.getDateFin().isBefore(date));
+    }
+
+    private static PrixAliment prixApplicable(
+            List<PrixAliment> prix,
+            UUID alimentId,
+            LocalDate date
+    ) {
+        List<PrixAliment> applicables = prix.stream()
+                .filter(p -> !p.getDateDebut().isAfter(date)
+                        && (p.getDateFin() == null || !p.getDateFin().isBefore(date)))
+                .toList();
+
+        if (applicables.size() != 1) {
+            throw new IllegalStateException(
+                    (applicables.isEmpty() ? "Aucun prix applicable" : "Plusieurs prix applicables")
+                            + " pour l'aliment " + alimentId
+                            + " à la date " + date
+            );
+        }
+        return applicables.getFirst();
     }
 }

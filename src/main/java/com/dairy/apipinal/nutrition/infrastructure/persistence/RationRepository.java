@@ -125,6 +125,31 @@ public interface RationRepository
             @Param("date") LocalDate date
     );
 
+    /**
+     * Rations effectives au moins un jour de [dateDebut, dateFin] (bornes incluses),
+     * lignes chargées dans la même requête. Même filtre que findAllEffectiveRationsAtDate.
+     */
+    @Query("""
+    select distinct r
+    from Ration r
+    left join fetch r.lignes
+    where r.tenantId = :tenantId
+      and r.exploitationId = :exploitationId
+      and r.statut in (com.dairy.apipinal.nutrition.domain.StatutRation.ACTIVE,
+                       com.dairy.apipinal.nutrition.domain.StatutRation.TERMINEE)
+      and r.dateDebut <= :dateFin
+      and (
+            r.dateFin is null
+            or r.dateFin >= :dateDebut
+          )
+    """)
+    List<Ration> findAllEffectiveRationsOverlappingPeriod(
+            @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
+            @Param("dateDebut") LocalDate dateDebut,
+            @Param("dateFin") LocalDate dateFin
+    );
+
     List<Ration> findByAnimalIdAndTenantIdAndStatut(
             UUID animalId,
             UUID tenantId,

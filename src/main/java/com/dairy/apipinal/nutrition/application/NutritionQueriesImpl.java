@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -204,36 +203,12 @@ public class NutritionQueriesImpl implements NutritionQueries {
         UUID tenantId = tenantContext.currentTenantId();
         UUID exploitationId = requireCurrentExploitationId();
 
-        BigDecimal coutTotal = BigDecimal.ZERO;
-
-        LocalDate date = dateDebut;
-
-        while (date.isBefore(dateFinExclusive)) {
-
-            List<Ration> rations = rationRepository.findAllEffectiveRationsAtDate(
-                    tenantId,
-                    exploitationId,
-                    date
-            );
-
-            for (Ration ration : rations) {
-
-
-                var result = rationService.calculateCost(
-                        new CalculateRationCost(
-                                ration.getAnimalId(),
-                                ration.getId(),
-                                date
-                        )
-                );
-
-                coutTotal = coutTotal.add(
-                        result.coutTotal()
-                );
-            }
-
-            date = date.plusDays(1);
-        }
+        BigDecimal coutTotal = rationService.calculateTotalCostOverPeriod(
+                tenantId,
+                exploitationId,
+                dateDebut,
+                dateFinExclusive
+        );
 
         return Optional.of(
                 new ExploitationFeedCostReference(
