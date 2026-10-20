@@ -1,5 +1,5 @@
 -- =====================================================================
--- V23 - Jeu de demonstration deterministe au 01/10/2026
+-- Jeu de demonstration (profil "demo" uniquement) deterministe au 01/10/2026
 -- Periode d'activite detaillee : 01/09/2026 au 01/10/2026 inclus.
 --
 -- Les dates anterieures servent uniquement a rendre coherents l'age,
@@ -8,6 +8,16 @@
 -- Les identifiants des faits repetitifs sont derives de cles metier fixes
 -- avec md5 : ils sont stables entre deux executions et jamais aleatoires.
 -- =====================================================================
+
+-- Migration répétable chargée uniquement par le profil "demo" (voir application-demo.yaml).
+-- Garde d'idempotence : le jeu n'est inséré que si le tenant de démonstration est absent.
+-- Aucun identifiant de connexion n'est fourni : le propriétaire de démonstration se connecte
+-- par OTP (SMS simulé, code visible dans les logs du profil dev).
+DO $demo$
+BEGIN
+IF EXISTS (SELECT 1 FROM tenant WHERE id = 'b0000000-0000-0000-0000-000000000001') THEN
+    RETURN;
+END IF;
 
 -- ---------------------------------------------------------------------
 -- 1. Identite et exploitation de demonstration
@@ -27,7 +37,7 @@ INSERT INTO tenant (
 
 INSERT INTO utilisateur (
     id, email, telephone, nom, prenom, statut,
-    created_at, created_by, updated_at, updated_by, version, code_pin
+    created_at, created_by, updated_at, updated_by, version
 ) VALUES (
     'b0000000-0000-0000-0000-000000000002',
     'demo@pinal.sn',
@@ -39,8 +49,7 @@ INSERT INTO utilisateur (
     NULL,
     '2026-09-01 04:05:00+00',
     NULL,
-    0,
-    '1234'
+    0
 );
 
 INSERT INTO exploitation (
@@ -223,7 +232,7 @@ seances (type_traite, heure_traite, part) AS (
 )
 INSERT INTO traite (
     id, tenant_id, lactation_id, exploitation_id, auteur_id,
-    date_heure, type, quantite_kg, date_heure_saisie, version
+    date_heure, type, quantite_litres, date_heure_saisie, version
 )
 SELECT
     md5('demo-traite|' || v.lactation_id::text || '|' || v.jour::text || '|' || s.type_traite)::uuid,
@@ -325,14 +334,14 @@ INSERT INTO evenement_sanitaire (
 -- sont inclusives. Les rations terminees restent valorisables historiquement.
 -- ---------------------------------------------------------------------
 INSERT INTO aliment (
-    id, code, nom, categorie, unite, actif,
+    id, tenant_id, exploitation_id, code, nom, categorie, unite, actif,
     date_creation, date_modification, version
 ) VALUES
-    ('f0000000-0000-0000-0000-000000000001', 'FOIN-NIAYES',    'Foin de Niayes',       'FOURRAGE',   'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
-    ('f0000000-0000-0000-0000-000000000002', 'ENS-MAIS',       'Ensilage de mais',      'FOURRAGE',   'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
-    ('f0000000-0000-0000-0000-000000000003', 'CONC-LAIT',      'Concentre laitier',     'CONCENTRE',  'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
-    ('f0000000-0000-0000-0000-000000000004', 'TOURT-COTON',    'Tourteau de coton',     'PROTEIQUE',  'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
-    ('f0000000-0000-0000-0000-000000000005', 'CMV-LAITIER',    'Complexe mineral',      'MINERAL',    'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0);
+    ('f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'FOIN-NIAYES',    'Foin de Niayes',       'FOURRAGE',   'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
+    ('f0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'ENS-MAIS',       'Ensilage de mais',      'FOURRAGE',   'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
+    ('f0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'CONC-LAIT',      'Concentre laitier',     'CONCENTRE',  'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
+    ('f0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'TOURT-COTON',    'Tourteau de coton',     'PROTEIQUE',  'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0),
+    ('f0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'CMV-LAITIER',    'Complexe mineral',      'MINERAL',    'KG', TRUE, '2026-09-01 05:00:00+00', '2026-09-16 05:00:00+00', 0);
 
 INSERT INTO prix_aliment (
     id, aliment_id, prix_unitaire, date_debut, date_fin, version
@@ -472,8 +481,8 @@ WITH jours_periode AS (
 ),
 production AS (
     SELECT
-        sum(t.quantite_kg) * 0.971::numeric AS volume_lait,
-        sum(t.quantite_kg * 0.971::numeric * p.prix_par_litre) AS chiffre_affaires
+        sum(t.quantite_litres) AS volume_lait,
+        sum(t.quantite_litres * p.prix_par_litre) AS chiffre_affaires
     FROM traite t
     JOIN prix_vente_lait p
       ON p.tenant_id = t.tenant_id
@@ -517,13 +526,14 @@ valeurs AS (
     CROSS JOIN charges c
 )
 INSERT INTO calcul_rentabilite (
-    id, tenant_id, date_calcul, periode_debut, periode_fin,
+    id, tenant_id, exploitation_id, date_calcul, periode_debut, periode_fin,
     volume_lait, chiffre_affaires, cout_alimentation, autres_charges,
     cout_total, cout_revient_par_litre, marge, version
 )
 SELECT
     'fa200000-0000-0000-0000-000000000001',
     'b0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000003',
     '2026-10-01 00:30:00+00',
     DATE '2026-09-01',
     DATE '2026-09-30',
@@ -536,3 +546,6 @@ SELECT
     round(chiffre_affaires - cout_alimentation - autres_charges, 4),
     0
 FROM valeurs;
+
+END
+$demo$;

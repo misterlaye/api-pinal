@@ -1,0 +1,9 @@
+# Profil "demo" : charge le jeu de démonstration (exploitation "Ferme Pilote de Niayes").
+# À combiner avec le profil de développement : SPRING_PROFILES_ACTIVE=dev,demo
+# Le jeu est une migration répétable, appliquée après toutes les migrations versionnées,
+# et ne s'insère qu'une fois (garde sur le tenant de démonstration). Jamais en production.
+spring:
+  flyway:
+    locations:
+      - classpath:db/migration
+      - classpath:db/demo
