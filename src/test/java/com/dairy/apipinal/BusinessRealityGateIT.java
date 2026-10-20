@@ -308,7 +308,7 @@ public class BusinessRealityGateIT {
 
         // 4. Vérifier total production en DB
         BigDecimal totalKgDb = jdbcTemplate.queryForObject(
-                "SELECT COALESCE(SUM(quantite_kg), 0) FROM traite WHERE lactation_id = ? AND tenant_id = ?",
+                "SELECT COALESCE(SUM(quantite_litres), 0) FROM traite WHERE lactation_id = ? AND tenant_id = ?",
                 BigDecimal.class, lactationId, tenantId);
         assertEquals(0, traite1Kg.add(traite2Kg).compareTo(totalKgDb),
                 "La somme des traites en DB doit correspondre exactement");
@@ -319,9 +319,8 @@ public class BusinessRealityGateIT {
                 BigDecimal.class, tenantId);
         assertEquals(0, new BigDecimal("500.00").compareTo(prixDb));
 
-        // 6. Le CA attendu = totalKg × 0.971 (conversion) × prix
-        BigDecimal expectedLitres = totalKgDb.multiply(new BigDecimal("0.971"));
-        BigDecimal expectedCA = expectedLitres.multiply(prixDb);
+        // 6. Le CA attendu = litres saisis × prix (le litre est l'unité de référence, aucune conversion)
+        BigDecimal expectedCA = totalKgDb.multiply(prixDb);
 
         assertTrue(expectedCA.signum() > 0, "Le CA doit être strictement positif");
 
@@ -331,8 +330,10 @@ public class BusinessRealityGateIT {
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode finance = objectMapper.readTree(dashboardResult.getResponse().getContentAsString());
-        assertEquals(0, expectedCA.compareTo(finance.get("kpis").get("chiffreAffaires").decimalValue()),
-                "Le CA retourné par l'API doit correspondre aux traites converties et au prix historique");
+        assertEquals(0, expectedCA.compareTo(finance.get("moisEnCours").get("chiffreAffaires").decimalValue()),
+                "Le CA retourné par l'API doit correspondre aux litres saisis et au prix historique");
+        assertEquals(0, totalKgDb.compareTo(finance.get("moisEnCours").get("volumeLitres").decimalValue()),
+                "Le volume financier doit être exactement le volume saisi, en litres");
     }
 
     // ========================================================================
@@ -407,14 +408,21 @@ public class BusinessRealityGateIT {
         JsonNode dashboard = objectMapper.readTree(dashResult.getResponse().getContentAsString());
 
         // Production doit être 0 (pas null) car c'est un agrégat
-        assertEquals(0, dashboard.get("production").get("kgAujourdhui").asDouble());
-        assertEquals(0, dashboard.get("production").get("kgDerniers7Jours").asDouble());
+        assertEquals(0, dashboard.get("production").get("litresAujourdhui").asDouble());
+        assertEquals(0, dashboard.get("production").get("litresDerniers7Jours").asDouble());
 
-        // Finance : sans prix de vente configuré, CA estimé doit être null
-        assertTrue(dashboard.get("finance").get("chiffreAffairesEstimeLait30Jours").isNull(),
-                "Le CA estimé doit être null quand aucun prix de vente n'est configuré, pas 0");
-        assertTrue(dashboard.get("finance").get("margeEstimeeSurCoutAlimentaire30Jours").isNull(),
-                "La marge estimée doit être null quand aucun prix n'est configuré");
+        // Sans vache en lactation : moyenne par vache non calculable (null), pas 0
+        assertTrue(dashboard.get("production").get("moyenneParVacheLactationLitres").isNull(),
+                "La moyenne par vache doit être null sans vache en lactation");
+
+        // Finance : sans prix configuré, le prix est null ; sans traite, le coût par litre est non calculable
+        assertTrue(dashboard.get("finance").get("prixLaitActuelParLitre").isNull(),
+                "Le prix du lait doit être null quand aucun prix de vente n'est configuré, pas 0");
+        JsonNode periode = dashboard.get("finance").get("derniers30Jours");
+        assertTrue(periode.get("coutRevientParLitre").isNull(),
+                "Le coût de revient par litre doit être null sans production");
+        assertTrue(periode.get("avertissements").toString().contains("AUCUNE_TRAITE"),
+                "L'absence de traite doit être signalée explicitement");
     }
 
     // ========================================================================
@@ -443,12 +451,12 @@ public class BusinessRealityGateIT {
         BigDecimal inputKg = new BigDecimal("12.345");
         recordMilking(lactationId, inputKg, TypeTraite.MATIN);
 
-        // Vérifier en DB : colonne est quantite_kg, pas quantite_litres
+        // Vérifier en DB : colonne est quantite_litres, pas quantite_litres
         BigDecimal dbKg = jdbcTemplate.queryForObject(
-                "SELECT quantite_kg FROM traite WHERE lactation_id = ? AND tenant_id = ? ORDER BY date_heure DESC LIMIT 1",
+                "SELECT quantite_litres FROM traite WHERE lactation_id = ? AND tenant_id = ? ORDER BY date_heure DESC LIMIT 1",
                 BigDecimal.class, lactationId, tenantId);
         assertEquals(0, inputKg.compareTo(dbKg),
-                "La valeur en DB (quantite_kg) doit être identique à la saisie UI");
+                "La valeur en DB (quantite_litres) doit être identique à la saisie UI");
 
         // Vérifier via API GET
         MvcResult getResult = mockMvc.perform(get("/api/v1/lactations/" + lactationId + "/milkings/courbe")
@@ -459,7 +467,7 @@ public class BusinessRealityGateIT {
 
         JsonNode traites = objectMapper.readTree(getResult.getResponse().getContentAsString());
         assertTrue(traites.isArray() && traites.size() > 0);
-        assertEquals(0, inputKg.compareTo(new BigDecimal(traites.get(0).get("quantiteKg").asText())),
+        assertEquals(0, inputKg.compareTo(new BigDecimal(traites.get(0).get("quantiteLitres").asText())),
                 "La valeur retournée par l'API doit être en kg, identique à la DB");
     }
 
@@ -483,9 +491,9 @@ public class BusinessRealityGateIT {
                 objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
     }
 
-    private void recordMilking(UUID lactationId, BigDecimal quantiteKg, TypeTraite type) throws Exception {
+    private void recordMilking(UUID lactationId, BigDecimal quantiteLitres, TypeTraite type) throws Exception {
         RecordMilkingRequest req = new RecordMilkingRequest(
-                OffsetDateTime.now(), type, quantiteKg
+                OffsetDateTime.now(), type, quantiteLitres
         );
         mockMvc.perform(post("/api/v1/lactations/" + lactationId + "/milkings")
                         .header("Authorization", "Bearer " + jwtToken)

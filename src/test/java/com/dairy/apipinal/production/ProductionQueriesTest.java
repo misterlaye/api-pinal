@@ -60,21 +60,25 @@ class ProductionQueriesTest {
         when(lactation2.getId())
                 .thenReturn(lactationId2);
 
+        when(tenantContext.currentExploitationId())
+                .thenReturn(exploitationId);
+
         when(lactationRepository.findAllOverlappingPeriod(
                 animalId,
                 tenantId,
+                exploitationId,
                 debut.toLocalDate(),
                 finExclusive.minusNanos(1).toLocalDate()
         )).thenReturn(List.of(lactation1, lactation2));
 
-        when(traiteRepository.sumQuantiteKgByLactationAndPeriod(
+        when(traiteRepository.sumQuantiteLitresByLactationAndPeriod(
                 lactationId1,
                 tenantId,
                 debut,
                 finExclusive
         )).thenReturn(new BigDecimal("25.500"));
 
-        when(traiteRepository.sumQuantiteKgByLactationAndPeriod(
+        when(traiteRepository.sumQuantiteLitresByLactationAndPeriod(
                 lactationId2,
                 tenantId,
                 debut,
@@ -89,7 +93,7 @@ class ProductionQueriesTest {
                 );
 
         BigDecimal result =
-                queries.getMilkProductionKg(
+                queries.getMilkProductionLitres(
                         animalId,
                         debut,
                         finExclusive
@@ -102,7 +106,7 @@ class ProductionQueriesTest {
     }
 
     @Test
-    void shouldReturnTotalMilkProductionForTenant() {
+    void shouldReturnTotalMilkProductionForCurrentExploitation() {
 
         UUID tenantId = UUID.randomUUID();
         UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
@@ -116,8 +120,12 @@ class ProductionQueriesTest {
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
 
-        when(traiteRepository.sumQuantiteKgByTenantAndPeriod(
+        when(tenantContext.currentExploitationId())
+                .thenReturn(exploitationId);
+
+        when(traiteRepository.sumQuantiteLitresByExploitationAndPeriod(
                 tenantId,
+                exploitationId,
                 debut,
                 finExclusive
         )).thenReturn(new BigDecimal("1250.750"));
@@ -130,7 +138,7 @@ class ProductionQueriesTest {
                 );
 
         BigDecimal result =
-                queries.getTotalMilkProductionKg(
+                queries.getTotalMilkProductionLitres(
                         debut,
                         finExclusive
                 );
@@ -159,7 +167,7 @@ class ProductionQueriesTest {
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalArgumentException.class,
-                () -> queries.getTotalMilkProductionKg(debut, fin)
+                () -> queries.getTotalMilkProductionLitres(debut, fin)
         );
 
         verifyNoInteractions(

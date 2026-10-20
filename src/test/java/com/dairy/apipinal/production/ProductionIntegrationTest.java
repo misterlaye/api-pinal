@@ -26,6 +26,9 @@ import static org.mockito.Mockito.when;
 @Import(TestcontainersConfiguration.class)
 class ProductionIntegrationTest {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @MockitoBean
     TenantContext tenantContext;
 
@@ -53,6 +56,10 @@ class ProductionIntegrationTest {
         UUID exploitationId = UUID.fromString("d2c88f9a-1111-4b11-1111-d11111111111");
         UUID userId = UUID.randomUUID();
         UUID animalId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO animal (id, tenant_id, exploitation_id, race_id, identifiant, nom, statut, sexe, created_at, updated_at, version) "
+                + "SELECT ?, ?, ?, (SELECT id FROM race LIMIT 1), ?, 'Animal test', 'ACTIF', 'FEMELLE', NOW(), NOW(), 0 "
+                + "WHERE NOT EXISTS (SELECT 1 FROM animal WHERE id = ?)",
+                animalId, tenantId, exploitationId, "DI-" + animalId, animalId);
 
         when(tenantContext.currentTenantId()).thenReturn(tenantId);
         when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
@@ -60,7 +67,7 @@ class ProductionIntegrationTest {
         when(tenantContext.currentUserId())
                 .thenReturn(userId);
 
-        when(animalQueries.getReference(animalId))
+        when(animalQueries.getReference(animalId, tenantId, exploitationId))
                 .thenReturn(
                         new AnimalReference(
                                 animalId,
@@ -99,7 +106,7 @@ class ProductionIntegrationTest {
         assertNotNull(traite.getId());
         assertEquals(
                 new BigDecimal("12.500"),
-                traite.getQuantiteKg()
+                traite.getQuantiteLitres()
         );
     }
 }

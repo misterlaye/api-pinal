@@ -60,7 +60,7 @@ class QueriesIntegrationTest {
         // 4. ProductionDashboardQueriesImpl - Total Milk
         assertDoesNotThrow(() -> {
             jdbcTemplate.queryForObject(
-                "SELECT COALESCE(SUM(quantite_kg), 0) FROM traite " +
+                "SELECT COALESCE(SUM(quantite_litres), 0) FROM traite " +
                 "WHERE tenant_id = ? AND exploitation_id = ? AND CAST(date_heure AS DATE) = CURRENT_DATE",
                 Double.class, tenantId, exploitationId);
         });

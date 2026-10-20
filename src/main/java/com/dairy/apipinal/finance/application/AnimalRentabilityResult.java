@@ -8,7 +8,6 @@ public record AnimalRentabilityResult(
         UUID animalId,
         LocalDate dateDebut,
         LocalDate dateFin,
-        BigDecimal volumeLaitKg,
         BigDecimal volumeLaitLitres,
         BigDecimal chiffreAffaires,
         BigDecimal coutAlimentation,

@@ -37,14 +37,30 @@ class PrixAlimentServiceTest {
     @Mock
     private PrixAlimentRepository prixAlimentRepository;
 
+    @Mock
+    private com.dairy.apipinal.shared.security.TenantContext tenantContext;
+
+    private static final UUID TENANT_ID = UUID.randomUUID();
+    private static final UUID EXPLOITATION_ID = UUID.randomUUID();
+
     private PrixAlimentService prixAlimentService;
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(TENANT_ID);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(EXPLOITATION_ID);
         prixAlimentService = new PrixAlimentService(
                 alimentRepository,
-                prixAlimentRepository
+                prixAlimentRepository,
+                tenantContext
         );
+    }
+
+    private static Aliment alimentMock(UUID id) {
+        Aliment aliment = new Aliment(TENANT_ID, EXPLOITATION_ID, "CODE", "Aliment", "FOURRAGE",
+                com.dairy.apipinal.nutrition.domain.UniteAliment.KG);
+        org.springframework.test.util.ReflectionTestUtils.setField(aliment, "id", id);
+        return aliment;
     }
 
     @Test
@@ -59,9 +75,9 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 9, 30)
         );
 
-        Aliment aliment = mock(Aliment.class);
+        Aliment aliment = alimentMock(alimentId);
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(java.util.Optional.of(aliment));
 
         when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
@@ -81,7 +97,7 @@ class PrixAlimentServiceTest {
                 .isSameAs(prix);
 
         verify(alimentRepository)
-                .findById(alimentId);
+                .findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID);
 
         verify(prixAlimentRepository)
                 .existsOverlappingPeriodWithEndDate(
@@ -106,7 +122,7 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 9, 30)
         );
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() ->
@@ -131,9 +147,9 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 9, 1)
         );
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(java.util.Optional.of(
-                        mock(Aliment.class)
+                        alimentMock(alimentId)
                 ));
 
         assertThatThrownBy(() ->
@@ -177,9 +193,9 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 10, 15)
         );
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(java.util.Optional.of(
-                        mock(Aliment.class)
+                        alimentMock(alimentId)
                 ));
 
         when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
@@ -212,9 +228,9 @@ class PrixAlimentServiceTest {
                 null
         );
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(java.util.Optional.of(
-                        mock(Aliment.class)
+                        alimentMock(alimentId)
                 ));
 
         when(prixAlimentRepository.existsOverlappingOpenEndedPeriod(
@@ -246,9 +262,9 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 10, 31)
         );
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(java.util.Optional.of(
-                        mock(Aliment.class)
+                        alimentMock(alimentId)
                 ));
 
         when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
@@ -284,8 +300,8 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 9, 30)
         );
 
-        when(alimentRepository.findById(alimentId))
-                .thenReturn(Optional.of(mock(Aliment.class)));
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
+                .thenReturn(Optional.of(alimentMock(alimentId)));
 
         when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
                 alimentId,
@@ -314,8 +330,8 @@ class PrixAlimentServiceTest {
                 LocalDate.of(2026, 9, 30)
         );
 
-        when(alimentRepository.findById(alimentId))
-                .thenReturn(Optional.of(mock(Aliment.class)));
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
+                .thenReturn(Optional.of(alimentMock(alimentId)));
 
         when(prixAlimentRepository.existsOverlappingPeriodWithEndDate(
                 alimentId,
@@ -337,12 +353,12 @@ class PrixAlimentServiceTest {
 
         UUID alimentId = UUID.randomUUID();
 
-        Aliment aliment = mock(Aliment.class);
+        Aliment aliment = alimentMock(alimentId);
 
         PrixAliment prixSeptembre = mock(PrixAliment.class);
         PrixAliment prixOctobre = mock(PrixAliment.class);
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(Optional.of(aliment));
 
         when(prixAlimentRepository
@@ -364,7 +380,7 @@ class PrixAlimentServiceTest {
                 );
 
         verify(alimentRepository)
-                .findById(alimentId);
+                .findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID);
 
         verify(prixAlimentRepository)
                 .findAllByAlimentIdOrderByDateDebutDesc(alimentId);
@@ -375,8 +391,8 @@ class PrixAlimentServiceTest {
 
         UUID alimentId = UUID.randomUUID();
 
-        when(alimentRepository.findById(alimentId))
-                .thenReturn(Optional.of(mock(Aliment.class)));
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
+                .thenReturn(Optional.of(alimentMock(alimentId)));
 
         when(prixAlimentRepository
                 .findAllByAlimentIdOrderByDateDebutDesc(alimentId))
@@ -397,10 +413,10 @@ class PrixAlimentServiceTest {
         UUID alimentId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2026, 10, 15);
 
-        Aliment aliment = mock(Aliment.class);
+        Aliment aliment = alimentMock(alimentId);
         PrixAliment prix = mock(PrixAliment.class);
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(Optional.of(aliment));
 
         when(prixAlimentRepository.findApplicablePrice(
@@ -420,7 +436,7 @@ class PrixAlimentServiceTest {
                 .containsSame(prix);
 
         verify(alimentRepository)
-                .findById(alimentId);
+                .findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID);
 
         verify(prixAlimentRepository)
                 .findApplicablePrice(
@@ -435,8 +451,8 @@ class PrixAlimentServiceTest {
         UUID alimentId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2025, 12, 15);
 
-        when(alimentRepository.findById(alimentId))
-                .thenReturn(Optional.of(mock(Aliment.class)));
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
+                .thenReturn(Optional.of(alimentMock(alimentId)));
 
         when(prixAlimentRepository.findApplicablePrice(
                 alimentId,
@@ -461,7 +477,7 @@ class PrixAlimentServiceTest {
         UUID alimentId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2026, 10, 15);
 
-        when(alimentRepository.findById(alimentId))
+        when(alimentRepository.findByIdAndTenantIdAndExploitationId(alimentId, TENANT_ID, EXPLOITATION_ID))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->

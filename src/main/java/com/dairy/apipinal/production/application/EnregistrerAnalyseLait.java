@@ -28,8 +28,8 @@ public class EnregistrerAnalyseLait {
 
     @Transactional
     public AnalyseLait execute(Command command) {
-        Lactation lactation = lactationRepository.findById(command.lactationId())
-                .filter(l -> l.getTenantId().equals(command.tenantId()))
+        Lactation lactation = lactationRepository
+                .findByIdAndTenantIdAndExploitationId(command.lactationId(), command.tenantId(), command.exploitationId())
                 .orElseThrow(() -> new IllegalArgumentException("Lactation introuvable."));
 
         AnalyseLait analyse = new AnalyseLait(
@@ -49,6 +49,7 @@ public class EnregistrerAnalyseLait {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID lactationId,
             UUID auteurId,
             LocalDate dateAnalyse,

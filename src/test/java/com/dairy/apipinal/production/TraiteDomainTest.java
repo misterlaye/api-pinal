@@ -46,7 +46,7 @@ class TraiteDomainTest {
 
         assertEquals(
                 BigDecimal.ZERO,
-                traite.getQuantiteKg()
+                traite.getQuantiteLitres()
         );
     }
 }

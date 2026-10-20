@@ -1,5 +1,6 @@
 package com.dairy.apipinal.production.application;
 
+import com.dairy.apipinal.animal.api.AnimalQueries;
 import com.dairy.apipinal.production.domain.Lactation;
 import com.dairy.apipinal.production.domain.StatutLactation;
 import com.dairy.apipinal.production.domain.Traite;
@@ -12,42 +13,45 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Traite individuelle saisie à partir de l'animal : elle est rattachée à la lactation en cours.
+ * <p>
+ * Aucune lactation n'est créée implicitement : une lactation démarre par un vêlage ou par une déclaration
+ * explicite ({@link StartLactation}), qui appliquent les règles communes (animal actif, femelle, exploitation).
+ */
 @Service
 public class RecordAnimalMilking {
 
     private final LactationRepository lactationRepository;
     private final RecordMilking recordMilking;
+    private final AnimalQueries animalQueries;
 
     public RecordAnimalMilking(
             LactationRepository lactationRepository,
-            RecordMilking recordMilking
+            RecordMilking recordMilking,
+            AnimalQueries animalQueries
     ) {
         this.lactationRepository = lactationRepository;
         this.recordMilking = recordMilking;
+        this.animalQueries = animalQueries;
     }
 
     @Transactional
     public Traite execute(Command command) {
-        // Find the active lactation for this animal
+        // Vérifie que l'animal appartient à l'exploitation courante (sinon : « Animal introuvable »).
+        animalQueries.getReference(command.animalId(), command.tenantId(), command.exploitationId());
+
         Lactation activeLactation = lactationRepository
-                .findByAnimalIdAndTenantIdAndStatut(
+                .findByAnimalIdAndTenantIdAndExploitationIdAndStatut(
                         command.animalId(),
                         command.tenantId(),
+                        command.exploitationId(),
                         StatutLactation.EN_COURS
                 )
-                .orElseGet(() -> {
-                    // Auto-create a lactation if none exists
-                    Lactation newLactation = new Lactation(
-                            command.tenantId(),
-                            command.exploitationId(),
-                            command.animalId(),
-                            java.time.LocalDate.now(),
-                            command.auteurId()
-                    );
-                    return lactationRepository.save(newLactation);
-                });
+                .orElseThrow(() -> new IllegalStateException(
+                        "Aucune lactation en cours pour cet animal : déclarez le vêlage ou démarrez la lactation."
+                ));
 
-        // Delegate to the standard milking command
         return recordMilking.execute(
                 new RecordMilking.Command(
                         command.tenantId(),
@@ -56,7 +60,7 @@ public class RecordAnimalMilking {
                         command.auteurId(),
                         command.dateHeure(),
                         command.type(),
-                        command.quantiteKg()
+                        command.quantiteLitres()
                 )
         );
     }
@@ -68,7 +72,7 @@ public class RecordAnimalMilking {
             UUID auteurId,
             OffsetDateTime dateHeure,
             TypeTraite type,
-            BigDecimal quantiteKg
+            BigDecimal quantiteLitres
     ) {
     }
 }

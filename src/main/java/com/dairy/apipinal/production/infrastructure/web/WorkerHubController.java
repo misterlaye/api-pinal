@@ -21,17 +21,27 @@ public class WorkerHubController {
     }
 
     @GetMapping("/home")
-    public WorkerHubQueries.WorkerHomeData getHomeData(@RequestParam UUID exploitationId) {
-        return workerHubQueries.getWorkerHomeData(tenantContext.currentTenantId(), exploitationId);
+    public WorkerHubQueries.WorkerHomeData getHomeData(@RequestParam(required = false) UUID exploitationId) {
+        return workerHubQueries.getWorkerHomeData(
+                tenantContext.currentTenantId(),
+                tenantContext.requireExploitation(exploitationId)
+        );
     }
 
     @GetMapping("/animals")
-    public List<WorkerHubQueries.WorkerAnimalData> getAnimals(@RequestParam UUID exploitationId) {
-        return workerHubQueries.getWorkerAnimals(tenantContext.currentTenantId(), exploitationId);
+    public List<WorkerHubQueries.WorkerAnimalData> getAnimals(@RequestParam(required = false) UUID exploitationId) {
+        return workerHubQueries.getWorkerAnimals(
+                tenantContext.currentTenantId(),
+                tenantContext.requireExploitation(exploitationId)
+        );
     }
 
     @GetMapping("/animals/{animalId}")
     public WorkerHubQueries.WorkerAnimalDetailData getAnimalDetail(@PathVariable UUID animalId) {
-        return workerHubQueries.getWorkerAnimalDetail(tenantContext.currentTenantId(), animalId);
+        return workerHubQueries.getWorkerAnimalDetail(
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
+                animalId
+        );
     }
 }

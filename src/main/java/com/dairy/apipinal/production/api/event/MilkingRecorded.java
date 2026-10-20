@@ -10,6 +10,6 @@ public record MilkingRecorded(
         UUID animalId,
         UUID tenantId,
         UUID exploitationId,
-        BigDecimal quantiteKg,
+        BigDecimal quantiteLitres,
         OffsetDateTime dateHeure
 ) {}

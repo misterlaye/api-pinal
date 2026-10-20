@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/aliments")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class AlimentController {
 
     private final AlimentService alimentService;

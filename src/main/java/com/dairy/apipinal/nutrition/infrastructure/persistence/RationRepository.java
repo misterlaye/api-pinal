@@ -16,20 +16,17 @@ import java.util.UUID;
 public interface RationRepository
         extends JpaRepository<Ration, UUID> {
 
-    Optional<Ration> findByIdAndTenantId(
+    Optional<Ration> findByIdAndTenantIdAndExploitationId(
             UUID id,
-            UUID tenantId
+            UUID tenantId,
+            UUID exploitationId
     );
 
-    Page<Ration> findByTenantIdAndAnimalId(
+    Page<Ration> findByTenantIdAndExploitationIdAndAnimalId(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
             Pageable pageable
-    );
-
-    boolean existsByIdAndTenantId(
-            UUID id,
-            UUID tenantId
     );
 
     @Query("""

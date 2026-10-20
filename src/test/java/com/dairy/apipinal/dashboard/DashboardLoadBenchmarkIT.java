@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @Import({TestcontainersConfiguration.class, DashboardLoadBenchmarkIT.StatementCountingConfiguration.class})
-@ActiveProfiles("test")
+@ActiveProfiles({"test", "demo"})
 class DashboardLoadBenchmarkIT {
 
     private static final AtomicLong STATEMENTS = new AtomicLong();
@@ -138,7 +138,7 @@ class DashboardLoadBenchmarkIT {
                 FROM generate_series(1, ?) g
                 """, exploitation.toString(), tenant, exploitation.toString(), exploitation, animals);
         jdbcTemplate.update("""
-                INSERT INTO traite (id, tenant_id, lactation_id, exploitation_id, auteur_id, date_heure, type, quantite_kg, date_heure_saisie, version)
+                INSERT INTO traite (id, tenant_id, lactation_id, exploitation_id, auteur_id, date_heure, type, quantite_litres, date_heure_saisie, version)
                 SELECT gen_random_uuid(), ?, md5(?::text || '|lactation|' || g)::uuid, ?, ?,
                        d + s.h, s.t, 8 + (g % 7) + (EXTRACT(DOY FROM d)::int % 3), d + s.h, 0
                 FROM generate_series(1, ?) g

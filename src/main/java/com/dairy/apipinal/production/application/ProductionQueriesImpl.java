@@ -37,9 +37,10 @@ public class ProductionQueriesImpl implements ProductionQueries {
     public ProductionReference getActiveLactation(UUID animalId) {
 
         return lactationRepository
-                .findByAnimalIdAndTenantIdAndStatut(
+                .findByAnimalIdAndTenantIdAndExploitationIdAndStatut(
                         animalId,
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         StatutLactation.EN_COURS
                 )
                 .map(lactation -> new ProductionReference(
@@ -55,7 +56,7 @@ public class ProductionQueriesImpl implements ProductionQueries {
     }
 
     @Override
-    public BigDecimal getMilkProductionKg(
+    public BigDecimal getMilkProductionLitres(
             UUID animalId,
             OffsetDateTime dateDebut,
             OffsetDateTime dateFinExclusive
@@ -63,18 +64,20 @@ public class ProductionQueriesImpl implements ProductionQueries {
         validatePeriod(dateDebut, dateFinExclusive);
 
         UUID tenantId = tenantContext.currentTenantId();
+        UUID exploitationId = tenantContext.currentExploitationId();
 
         List<Lactation> lactations =
                 lactationRepository.findAllOverlappingPeriod(
                         animalId,
                         tenantId,
+                        exploitationId,
                         dateDebut.toLocalDate(),
                         dateFinExclusive.minusNanos(1).toLocalDate()
                 );
 
         return lactations.stream()
                 .map(lactation ->
-                        traiteRepository.sumQuantiteKgByLactationAndPeriod(
+                        traiteRepository.sumQuantiteLitresByLactationAndPeriod(
                                 lactation.getId(),
                                 tenantId,
                                 dateDebut,
@@ -85,7 +88,7 @@ public class ProductionQueriesImpl implements ProductionQueries {
     }
 
     @Override
-    public BigDecimal getTotalMilkProductionKg(
+    public BigDecimal getTotalMilkProductionLitres(
             OffsetDateTime dateDebut,
             OffsetDateTime dateFinExclusive
     ) {
@@ -94,22 +97,35 @@ public class ProductionQueriesImpl implements ProductionQueries {
         UUID tenantId = tenantContext.currentTenantId();
         UUID exploitationId = tenantContext.currentExploitationId();
 
-        if (exploitationId != null) {
-            return traiteRepository.sumQuantiteKgByExploitationAndPeriod(
-                    tenantId,
-                    exploitationId,
-                    dateDebut,
-                    dateFinExclusive
-            );
-        }
-
-        return traiteRepository.sumQuantiteKgByTenantAndPeriod(
+        return traiteRepository.sumQuantiteLitresByExploitationAndPeriod(
                 tenantId,
+                exploitationId,
                 dateDebut,
                 dateFinExclusive
         );
     }
 
+
+    @Override
+    public java.util.Map<java.time.LocalDate, BigDecimal> getDailyMilkProductionLitres(
+            java.time.LocalDate debut,
+            java.time.LocalDate finInclusive
+    ) {
+        if (debut == null || finInclusive == null || finInclusive.isBefore(debut)) {
+            throw new IllegalArgumentException("La période de production est invalide.");
+        }
+        java.util.Map<java.time.LocalDate, BigDecimal> parJour = new java.util.TreeMap<>();
+        for (Object[] ligne : traiteRepository.sumLitresParJour(
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
+                debut.atStartOfDay().atOffset(java.time.ZoneOffset.UTC),
+                finInclusive.plusDays(1).atStartOfDay().atOffset(java.time.ZoneOffset.UTC)
+        )) {
+            java.time.LocalDate jour = ligne[0] instanceof java.sql.Date date ? date.toLocalDate() : (java.time.LocalDate) ligne[0];
+            parJour.put(jour, (BigDecimal) ligne[1]);
+        }
+        return parJour;
+    }
 
     private void validatePeriod(
             OffsetDateTime dateDebut,

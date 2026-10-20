@@ -14,5 +14,11 @@ public interface FinanceQueries {
 
     Optional<RentabiliteReference> findLatestRentabilite();
 
+    /**
+     * Résultat financier de l'exploitation courante sur [debut, fin] (bornes incluses), selon les règles
+     * de {@link ResultatFinancier}. Source unique des indicateurs financiers.
+     */
+    ResultatFinancier calculerPeriode(LocalDate debut, LocalDate fin);
+
     com.dairy.apipinal.finance.infrastructure.web.FinanceDashboardResponse getDashboardSummary();
 }

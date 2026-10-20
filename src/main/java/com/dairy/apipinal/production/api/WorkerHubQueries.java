@@ -9,15 +9,21 @@ public interface WorkerHubQueries {
 
     List<WorkerAnimalData> getWorkerAnimals(UUID tenantId, UUID exploitationId);
 
-    WorkerAnimalDetailData getWorkerAnimalDetail(UUID tenantId, UUID animalId);
+    WorkerAnimalDetailData getWorkerAnimalDetail(UUID tenantId, UUID exploitationId, UUID animalId);
 
     // DTOs
+    /**
+     * @param seance            séance de traite en cours : MATIN avant midi, SOIR ensuite (heure UTC = heure de Dakar)
+     * @param traitesSeance     animaux déjà traits pour cette séance aujourd'hui
+     * @param volumeSeance      litres collectés pour cette séance aujourd'hui
+     */
     record WorkerHomeData(
             int totalAnimaux,
             int animauxASurveiller,
-            int traitesDuMatin,
+            String seance,
+            int traitesSeance,
             int totalLactationAnimaux,
-            double volumeCollecteMatin,
+            double volumeSeance,
             List<WorkerActivityData> recentActivities
     ) {}
 

@@ -147,7 +147,6 @@ class FinanceControllerTest {
                         LocalDate.of(2026, 9, 1),
                         LocalDate.of(2026, 9, 30),
                         new BigDecimal("700.000"),
-                        new BigDecimal("700.000"),
                         new BigDecimal("420000.0000"),
                         new BigDecimal("120000.0000"),
                         new BigDecimal("300000.0000"),
@@ -161,7 +160,6 @@ class FinanceControllerTest {
                         animalId,
                         LocalDate.of(2026, 9, 1),
                         LocalDate.of(2026, 9, 30),
-                        new BigDecimal("700.000"),
                         new BigDecimal("700.000"),
                         new BigDecimal("420000.0000"),
                         new BigDecimal("120000.0000"),
@@ -196,7 +194,7 @@ class FinanceControllerTest {
                                 .value(animalId.toString())
                 )
                 .andExpect(
-                        jsonPath("$.volumeLaitKg")
+                        jsonPath("$.volumeLaitLitres")
                                 .value(700.0)
                 )
                 .andExpect(

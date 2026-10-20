@@ -16,6 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/animals/{animalId}/rations")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class RationController {
 
     private final RationService rationService;

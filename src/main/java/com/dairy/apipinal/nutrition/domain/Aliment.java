@@ -20,8 +20,8 @@ import java.util.UUID;
         name = "aliment",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_aliment_code",
-                        columnNames = "code"
+                        name = "uk_aliment_exploitation_code",
+                        columnNames = {"exploitation_id", "code"}
                 )
         }
 )
@@ -30,6 +30,12 @@ public class Aliment {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    @Column(name = "exploitation_id", nullable = false, updatable = false)
+    private UUID exploitationId;
 
     @Column(nullable = false, length = 50)
     private String code;
@@ -60,11 +66,15 @@ public class Aliment {
     }
 
     public Aliment(
+            UUID tenantId,
+            UUID exploitationId,
             String code,
             String nom,
             String categorie,
             UniteAliment unite
     ) {
+        this.tenantId = Objects.requireNonNull(tenantId, "Le tenant est obligatoire.");
+        this.exploitationId = Objects.requireNonNull(exploitationId, "L'exploitation est obligatoire.");
         this.code = requireText(code, "Le code est obligatoire.");
         this.nom = requireText(nom, "Le nom est obligatoire.");
         this.categorie = requireText(categorie, "La catégorie est obligatoire.");
@@ -117,6 +127,14 @@ public class Aliment {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getTenantId() {
+        return tenantId;
+    }
+
+    public UUID getExploitationId() {
+        return exploitationId;
     }
 
     public String getCode() {

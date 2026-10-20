@@ -14,9 +14,17 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Rentabilité alimentaire d'un animal sur une période : lait (en litres) valorisé au prix applicable
+ * chaque jour, diminué du coût de ses rations.
+ * <p>
+ * Le résultat est vide si le coût alimentaire ne peut pas être déterminé pour toute la période
+ * (jour sans ration) ; un jour de production sans prix de vente applicable est une erreur explicite.
+ */
 @Service
 @Transactional(readOnly = true)
 public class AnimalRentabilityService {
@@ -26,20 +34,17 @@ public class AnimalRentabilityService {
     private final ProductionQueries productionQueries;
     private final NutritionQueries nutritionQueries;
     private final PrixVenteLaitRepository prixVenteLaitRepository;
-    private final MilkVolumeConversionPolicy milkVolumeConversionPolicy;
     private final TenantContext tenantContext;
 
     public AnimalRentabilityService(
             ProductionQueries productionQueries,
             NutritionQueries nutritionQueries,
             PrixVenteLaitRepository prixVenteLaitRepository,
-            MilkVolumeConversionPolicy milkVolumeConversionPolicy,
             TenantContext tenantContext
     ) {
         this.productionQueries = productionQueries;
         this.nutritionQueries = nutritionQueries;
         this.prixVenteLaitRepository = prixVenteLaitRepository;
-        this.milkVolumeConversionPolicy = milkVolumeConversionPolicy;
         this.tenantContext = tenantContext;
     }
 
@@ -51,7 +56,6 @@ public class AnimalRentabilityService {
 
         validatePeriod(animalId, periodeDebut, periodeFin);
 
-        UUID tenantId = tenantContext.currentTenantId();
         LocalDate finExclusive = periodeFin.plusDays(1);
 
         FeedCostReference feedCost =
@@ -65,93 +69,48 @@ public class AnimalRentabilityService {
             return Optional.empty();
         }
 
-        BigDecimal volumeLaitKg = BigDecimal.ZERO;
+        List<PrixVenteLait> prixPeriode = prixVenteLaitRepository.findAllOverlappingPeriod(
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
+                periodeDebut,
+                periodeFin
+        );
+
         BigDecimal volumeLaitLitres = BigDecimal.ZERO;
         BigDecimal chiffreAffaires = BigDecimal.ZERO;
 
-        LocalDate jour = periodeDebut;
+        for (LocalDate jour = periodeDebut; jour.isBefore(finExclusive); jour = jour.plusDays(1)) {
 
-        while (jour.isBefore(finExclusive)) {
+            OffsetDateTime debutJour = jour.atStartOfDay().atOffset(ZoneOffset.UTC);
+            OffsetDateTime finJour = jour.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
 
-            OffsetDateTime debutJour =
-                    jour.atStartOfDay().atOffset(ZoneOffset.UTC);
+            BigDecimal productionLitres = productionQueries.getMilkProductionLitres(animalId, debutJour, finJour);
 
-            OffsetDateTime finJour =
-                    jour.plusDays(1)
-                            .atStartOfDay()
-                            .atOffset(ZoneOffset.UTC);
-
-            BigDecimal productionKg =
-                    productionQueries.getMilkProductionKg(
-                            animalId,
-                            debutJour,
-                            finJour
-                    );
-
-            if (productionKg.signum() > 0) {
-
-                BigDecimal productionLitres =
-                        milkVolumeConversionPolicy.convertKgToLitres(
-                                productionKg
-                        );
-
+            if (productionLitres.signum() > 0) {
                 LocalDate jourCourant = jour;
+                PrixVenteLait prix = PeriodeFinanciereService.prixApplicable(prixPeriode, jourCourant)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Aucun prix de vente du lait applicable pour le " + jourCourant
+                        ));
 
-                PrixVenteLait prix =
-                        prixVenteLaitRepository
-                                .findApplicablePrice(tenantId, jourCourant)
-                                .orElseThrow(() ->
-                                        new IllegalStateException(
-                                                "Aucun prix de vente du lait applicable pour le "
-                                                        + jourCourant
-                                        )
-                                );
-
-                BigDecimal revenuJour =
+                volumeLaitLitres = volumeLaitLitres.add(productionLitres);
+                chiffreAffaires = chiffreAffaires.add(
                         productionLitres
                                 .multiply(prix.getPrixParLitre())
-                                .setScale(
-                                        MONEY_SCALE,
-                                        RoundingMode.HALF_UP
-                                );
-
-                volumeLaitKg =
-                        volumeLaitKg.add(productionKg);
-
-                volumeLaitLitres =
-                        volumeLaitLitres.add(productionLitres);
-
-                chiffreAffaires =
-                        chiffreAffaires.add(revenuJour);
+                                .setScale(MONEY_SCALE, RoundingMode.HALF_UP)
+                );
             }
-
-            jour = jour.plusDays(1);
         }
 
-        BigDecimal coutAlimentation =
-                feedCost.coutAlimentation();
-
-        BigDecimal marge =
-                chiffreAffaires.subtract(coutAlimentation);
+        BigDecimal coutAlimentation = feedCost.coutAlimentation();
+        BigDecimal marge = chiffreAffaires.subtract(coutAlimentation);
 
         BigDecimal prixMoyenParLitre = null;
         BigDecimal coutAlimentationParLitre = null;
 
         if (volumeLaitLitres.signum() > 0) {
-
-            prixMoyenParLitre =
-                    chiffreAffaires.divide(
-                            volumeLaitLitres,
-                            MONEY_SCALE,
-                            RoundingMode.HALF_UP
-                    );
-
-            coutAlimentationParLitre =
-                    coutAlimentation.divide(
-                            volumeLaitLitres,
-                            MONEY_SCALE,
-                            RoundingMode.HALF_UP
-                    );
+            prixMoyenParLitre = chiffreAffaires.divide(volumeLaitLitres, MONEY_SCALE, RoundingMode.HALF_UP);
+            coutAlimentationParLitre = coutAlimentation.divide(volumeLaitLitres, MONEY_SCALE, RoundingMode.HALF_UP);
         }
 
         return Optional.of(
@@ -159,7 +118,6 @@ public class AnimalRentabilityService {
                         animalId,
                         periodeDebut,
                         periodeFin,
-                        volumeLaitKg,
                         volumeLaitLitres,
                         chiffreAffaires,
                         coutAlimentation,

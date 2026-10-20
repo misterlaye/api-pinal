@@ -14,7 +14,6 @@ public class FinanceRestMapper {
                 reference.animalId(),
                 reference.dateDebut(),
                 reference.dateFin(),
-                reference.volumeLaitKg(),
                 reference.volumeLaitLitres(),
                 reference.chiffreAffaires(),
                 reference.coutAlimentation(),

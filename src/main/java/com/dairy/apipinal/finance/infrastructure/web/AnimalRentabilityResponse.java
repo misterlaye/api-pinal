@@ -28,13 +28,7 @@ public record AnimalRentabilityResponse(
         LocalDate dateFin,
 
         @Schema(
-                description = "Volume de lait produit en kilogrammes",
-                example = "700.000"
-        )
-        BigDecimal volumeLaitKg,
-
-        @Schema(
-                description = "Volume converti en litres selon la politique Finance configurée",
+                description = "Volume de lait produit, en litres",
                 example = "700.000"
         )
         BigDecimal volumeLaitLitres,

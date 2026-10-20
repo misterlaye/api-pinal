@@ -1,6 +1,5 @@
 package com.dairy.apipinal.finance.application;
 
-import com.dairy.apipinal.finance.application.CreatePrixVenteLait;
 import com.dairy.apipinal.finance.domain.PrixVenteLait;
 import com.dairy.apipinal.finance.infrastructure.persistence.PrixVenteLaitRepository;
 import com.dairy.apipinal.shared.security.TenantContext;
@@ -11,6 +10,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Historique des prix de vente du lait de l'exploitation courante.
+ * <p>
+ * Règle de succession : un nouveau prix commençant après le début du prix en cours (sans date de fin)
+ * clôt ce dernier la veille de la nouvelle date de début. Tout autre recouvrement de période est refusé.
+ */
 @Service
 @Transactional
 public class PrixVenteLaitService {
@@ -36,32 +41,17 @@ public class PrixVenteLaitService {
                 command.dateFin()
         );
 
-        // Clôturer automatiquement le prix ouvert précédent s'il existe et a débuté avant
-        List<PrixVenteLait> previousPrices = repository.findAllByTenantIdOrderByDateDebutDesc(tenantId);
-        for (PrixVenteLait prev : previousPrices) {
-            if (prev.getDateFin() == null && prev.getDateDebut().isBefore(command.dateDebut())) {
-                prev.cloturer(command.dateDebut().minusDays(1));
-                repository.save(prev);
-            }
-        }
+        repository.findFirstByTenantIdAndExploitationIdAndDateFinIsNull(tenantId, exploitationId)
+                .filter(prixEnCours -> prixEnCours.getDateDebut().isBefore(command.dateDebut()))
+                .ifPresent(prixEnCours -> {
+                    prixEnCours.cloturer(command.dateDebut().minusDays(1));
+                    // Écrit immédiatement : la contrainte d'exclusion SQL est vérifiée à l'insertion du nouveau prix.
+                    repository.saveAndFlush(prixEnCours);
+                });
 
-        boolean overlapping;
-
-
-        if (command.dateFin() == null) {
-            overlapping =
-                    repository.existsOverlappingOpenEndedPeriod(
-                            tenantId,
-                            command.dateDebut()
-                    );
-        } else {
-            overlapping =
-                    repository.existsOverlappingPeriodWithEndDate(
-                            tenantId,
-                            command.dateDebut(),
-                            command.dateFin()
-                    );
-        }
+        boolean overlapping = command.dateFin() == null
+                ? repository.existsOverlappingOpenEndedPeriod(tenantId, exploitationId, command.dateDebut())
+                : repository.existsOverlappingPeriodWithEndDate(tenantId, exploitationId, command.dateDebut(), command.dateFin());
 
         if (overlapping) {
             throw new IllegalStateException(
@@ -83,10 +73,12 @@ public class PrixVenteLaitService {
     @Transactional(readOnly = true)
     public PrixVenteLait getApplicablePrice(LocalDate date) {
 
-        UUID tenantId = tenantContext.currentTenantId();
-
         return repository
-                .findApplicablePrice(tenantId, date)
+                .findApplicablePrice(
+                        tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
+                        date
+                )
                 .orElseThrow(() ->
                         new IllegalStateException(
                                 "Aucun prix de vente du lait applicable à la date : "
@@ -98,10 +90,9 @@ public class PrixVenteLaitService {
     @Transactional(readOnly = true)
     public List<PrixVenteLait> getHistory() {
 
-        UUID tenantId = tenantContext.currentTenantId();
-
-        return repository.findAllByTenantIdOrderByDateDebutDesc(
-                tenantId
+        return repository.findAllByTenantIdAndExploitationIdOrderByDateDebutDesc(
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId()
         );
     }
 

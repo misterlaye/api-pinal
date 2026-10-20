@@ -8,10 +8,10 @@ public record DashboardSummary(
         FinancialSummary finance
 ) {
     public record ProductionSummary(
-            BigDecimal kgAujourdhui,
-            BigDecimal kgDerniers7Jours,
-            BigDecimal kgDerniers30Jours,
-            BigDecimal moyenneParVacheLactationKg
+            BigDecimal litresAujourdhui,
+            BigDecimal litresDerniers7Jours,
+            BigDecimal litresDerniers30Jours,
+            BigDecimal moyenneParVacheLactationLitres
     ) {}
 
     public record HerdSummary(
@@ -20,10 +20,12 @@ public record DashboardSummary(
             long vachesTaries
     ) {}
 
+    /**
+     * @param prixLaitActuelParLitre prix de vente du lait applicable aujourd'hui ({@code null} si non configuré)
+     * @param derniers30Jours        résultat financier des 30 derniers jours (règles du module Finance)
+     */
     public record FinancialSummary(
-            BigDecimal prixMoyenLaitParKg,
-            BigDecimal coutMoyenRationParJour,
-            BigDecimal chiffreAffairesEstimeLait30Jours,
-            BigDecimal margeEstimeeSurCoutAlimentaire30Jours
+            BigDecimal prixLaitActuelParLitre,
+            com.dairy.apipinal.finance.api.ResultatFinancier derniers30Jours
     ) {}
 }

@@ -70,11 +70,9 @@ class NutritionQueriesTest {
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         RationReference result =
                 nutritionQueries.getRation(rationId);
@@ -109,11 +107,9 @@ class NutritionQueriesTest {
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.existsByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(false);
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.empty());
 
         boolean result =
                 nutritionQueries.exists(rationId);
@@ -200,15 +196,14 @@ class NutritionQueriesTest {
     void shouldNotExposeRationFromAnotherTenant() {
 
         UUID currentTenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         when(tenantContext.currentTenantId())
                 .thenReturn(currentTenantId);
+        when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                currentTenantId
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, currentTenantId, exploitationId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
                 nutritionQueries.getRation(rationId)
@@ -217,10 +212,7 @@ class NutritionQueriesTest {
                 .hasMessageContaining("Ration introuvable");
 
         verify(rationRepository)
-                .findByIdAndTenantId(
-                        rationId,
-                        currentTenantId
-                );
+                .findByIdAndTenantIdAndExploitationId(rationId, currentTenantId, exploitationId);
     }
 
     @Test
@@ -344,7 +336,8 @@ class NutritionQueriesTest {
         // Le calcul jour par jour est délégué à RationService (vérifié en base réelle
         // par NutritionHistoricalCostIntegrationTest et FeedCostPeriodEquivalenceIntegrationTest).
         when(rationService.calculateTotalCostOverPeriod(tenantId, exploitationId, jour1, finExclusive))
-                .thenReturn(new BigDecimal("7200.00"));
+                .thenReturn(new com.dairy.apipinal.nutrition.application.RationService.CoutPeriode(
+                        new BigDecimal("7200.00"), java.util.List.of()));
 
         NutritionQueriesImpl queries =
                 new NutritionQueriesImpl(

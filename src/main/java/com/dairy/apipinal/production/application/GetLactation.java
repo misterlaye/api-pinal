@@ -17,10 +17,10 @@ public class GetLactation {
         this.lactationRepository = lactationRepository;
     }
 
-    public Lactation execute(UUID tenantId, UUID lactationId) {
+    public Lactation execute(UUID tenantId, UUID exploitationId, UUID lactationId) {
 
         return lactationRepository
-                .findByIdAndTenantId(lactationId, tenantId)
+                .findByIdAndTenantIdAndExploitationId(lactationId, tenantId, exploitationId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Lactation introuvable."
                 ));

@@ -48,6 +48,8 @@ public interface PrixAlimentRepository extends JpaRepository<PrixAliment, UUID> 
             LocalDate dateDebut
     );
 
+    Optional<PrixAliment> findFirstByAlimentIdAndDateFinIsNull(UUID alimentId);
+
     List<PrixAliment> findAllByAlimentIdOrderByDateDebutDesc(
             UUID alimentId
     );

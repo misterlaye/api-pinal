@@ -13,20 +13,18 @@ import java.util.UUID;
 
 public interface LactationRepository extends JpaRepository<Lactation, UUID> {
 
-    Optional<Lactation> findByIdAndTenantId(
+    Optional<Lactation> findByIdAndTenantIdAndExploitationId(
             UUID id,
-            UUID tenantId
+            UUID tenantId,
+            UUID exploitationId
     );
 
-    boolean existsByAnimalIdAndTenantIdAndStatut(
-            UUID animalId,
-            UUID tenantId,
-            StatutLactation statut
-    );
 
-    Optional<Lactation> findByAnimalIdAndTenantIdAndStatut(
+
+    Optional<Lactation> findByAnimalIdAndTenantIdAndExploitationIdAndStatut(
             UUID animalId,
             UUID tenantId,
+            UUID exploitationId,
             StatutLactation statut
     );
 
@@ -35,6 +33,7 @@ public interface LactationRepository extends JpaRepository<Lactation, UUID> {
     from Lactation l
     where l.animalId = :animalId
       and l.tenantId = :tenantId
+      and l.exploitationId = :exploitationId
       and l.dateDebut <= :dateFin
       and (
             l.dateFin is null
@@ -45,6 +44,7 @@ public interface LactationRepository extends JpaRepository<Lactation, UUID> {
     List<Lactation> findAllOverlappingPeriod(
             @Param("animalId") UUID animalId,
             @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
             @Param("dateDebut") LocalDate dateDebut,
             @Param("dateFin") LocalDate dateFin
     );

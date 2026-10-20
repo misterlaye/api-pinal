@@ -21,7 +21,6 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
 
     @Override
     public WorkerHomeData getWorkerHomeData(UUID tenantId, UUID exploitationId) {
-        // Mock data logic powered by SQL for the worker hub
         Integer totalAnimauxObj = jdbcTemplate.queryForObject(
                 "SELECT COUNT(id) FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND statut = 'ACTIF'",
                 Integer.class, tenantId, exploitationId
@@ -36,28 +35,31 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
         );
         int animauxASurveiller = animauxASurveillerObj != null ? animauxASurveillerObj : 0;
 
+        // Séance en cours : MATIN avant midi, SOIR ensuite (UTC, fuseau de l'Afrique de l'Ouest)
+        String seance = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).getHour() < 12 ? "MATIN" : "SOIR";
+
         Integer traitesMatin = jdbcTemplate.queryForObject(
                 "SELECT COUNT(DISTINCT a.id) FROM animal a " +
                 "JOIN lactation l ON l.animal_id = a.id " +
                 "JOIN traite t ON t.lactation_id = l.id " +
                 "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
-                "AND t.type = 'MATIN'",
-                Integer.class, tenantId, exploitationId
+                "AND t.type = ?",
+                Integer.class, tenantId, exploitationId, seance
         );
         if (traitesMatin == null) traitesMatin = 0;
 
         BigDecimal volMatinBd = jdbcTemplate.queryForObject(
-                "SELECT SUM(t.quantite_kg) FROM animal a " +
+                "SELECT SUM(t.quantite_litres) FROM animal a " +
                 "JOIN lactation l ON l.animal_id = a.id " +
                 "JOIN traite t ON t.lactation_id = l.id " +
                 "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND CAST(t.date_heure AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE " +
-                "AND t.type = 'MATIN'",
-                BigDecimal.class, tenantId, exploitationId
+                "AND t.type = ?",
+                BigDecimal.class, tenantId, exploitationId, seance
         );
         double volMatin = volMatinBd != null ? volMatinBd.doubleValue() : 0.0;
 
         List<WorkerActivityData> recentActivities = jdbcTemplate.query(
-                "SELECT t.id, 'Traite' as type, a.nom, a.identifiant, t.date_heure, t.quantite_kg " +
+                "SELECT t.id, 'Traite' as type, a.nom, a.identifiant, t.date_heure, t.quantite_litres " +
                 "FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
                 "JOIN animal a ON a.id = l.animal_id " +
@@ -72,7 +74,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                         rs.getString("nom"),
                         rs.getString("identifiant"),
                         timeStr,
-                        rs.getDouble("quantite_kg") + " L"
+                        rs.getDouble("quantite_litres") + " L"
                     );
                 },
                 tenantId, exploitationId
@@ -84,7 +86,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
         );
         if (totalLactationAnimaux == null) totalLactationAnimaux = 0;
 
-        return new WorkerHomeData(totalAnimaux, animauxASurveiller, traitesMatin, totalLactationAnimaux, volMatin, recentActivities);
+        return new WorkerHomeData(totalAnimaux, animauxASurveiller, seance, traitesMatin, totalLactationAnimaux, volMatin, recentActivities);
     }
 
     @Override
@@ -92,7 +94,7 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
         return jdbcTemplate.query(
                 "SELECT a.id, a.nom, a.identifiant, " +
                 "(SELECT t.date_heure FROM traite t JOIN lactation l ON l.id = t.lactation_id WHERE l.animal_id = a.id ORDER BY t.date_heure DESC LIMIT 1) as last_milking_time, " +
-                "(SELECT t.quantite_kg FROM traite t JOIN lactation l ON l.id = t.lactation_id WHERE l.animal_id = a.id ORDER BY t.date_heure DESC LIMIT 1) as last_milking_vol, " +
+                "(SELECT t.quantite_litres FROM traite t JOIN lactation l ON l.id = t.lactation_id WHERE l.animal_id = a.id ORDER BY t.date_heure DESC LIMIT 1) as last_milking_vol, " +
                 "EXISTS (SELECT 1 FROM lactation l WHERE l.animal_id = a.id AND l.statut = 'EN_COURS') as is_lactating " +
                 "FROM animal a " +
                 "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF'",
@@ -123,12 +125,12 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
     }
 
     @Override
-    public WorkerAnimalDetailData getWorkerAnimalDetail(UUID tenantId, UUID animalId) {
+    public WorkerAnimalDetailData getWorkerAnimalDetail(UUID tenantId, UUID exploitationId, UUID animalId) {
         List<WorkerHistoryItem> history = jdbcTemplate.query(
-                "SELECT t.id, t.date_heure, t.quantite_kg " +
+                "SELECT t.id, t.date_heure, t.quantite_litres " +
                 "FROM traite t " +
                 "JOIN lactation l ON l.id = t.lactation_id " +
-                "WHERE t.tenant_id = ? AND l.animal_id = ? " +
+                "WHERE t.tenant_id = ? AND t.exploitation_id = ? AND l.animal_id = ? " +
                 "ORDER BY t.date_heure DESC LIMIT 5",
                 (rs, rowNum) -> {
                     OffsetDateTime dt = rs.getObject("date_heure", OffsetDateTime.class);
@@ -136,21 +138,21 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                         UUID.fromString(rs.getString("id")),
                         dt != null ? dt.format(DateTimeFormatter.ofPattern("dd/MM")) : "-",
                         dt != null ? dt.format(DateTimeFormatter.ofPattern("HH:mm")) : "-",
-                        rs.getDouble("quantite_kg") + " L"
+                        rs.getDouble("quantite_litres") + " L"
                     );
                 },
-                tenantId, animalId
+                tenantId, exploitationId, animalId
         );
 
         String lastTime = history.isEmpty() ? "-" : history.get(0).time();
         String lastVol = history.isEmpty() ? "-" : history.get(0).volume();
 
-        return jdbcTemplate.queryForObject(
+        List<WorkerAnimalDetailData> details = jdbcTemplate.query(
                 "SELECT id, nom, identifiant, " +
                 "EXISTS (SELECT 1 FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS') as is_lactating, " +
                 "(SELECT (CURRENT_DATE - CAST(l.date_debut AS DATE)) FROM lactation l WHERE l.tenant_id = ? AND l.animal_id = animal.id AND l.statut = 'EN_COURS' LIMIT 1) as jours_lactation, " +
                 "EXISTS (SELECT 1 FROM ration r WHERE r.tenant_id = ? AND r.animal_id = animal.id AND r.statut = 'ACTIVE') as has_ration " +
-                "FROM animal WHERE tenant_id = ? AND id = ?",
+                "FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND id = ?",
                 (rs, rowNum) -> {
                         Number joursLact = (Number) rs.getObject("jours_lactation");
                         boolean hasRation = rs.getBoolean("has_ration");
@@ -169,7 +171,11 @@ public class WorkerHubQueriesImpl implements WorkerHubQueries {
                                 joursLact != null ? joursLact.intValue() : 0
                         );
                 },
-                tenantId, tenantId, tenantId, tenantId, animalId
+                tenantId, tenantId, tenantId, tenantId, exploitationId, animalId
         );
+        if (details.isEmpty()) {
+            throw new IllegalArgumentException("Animal introuvable.");
+        }
+        return details.getFirst();
     }
 }

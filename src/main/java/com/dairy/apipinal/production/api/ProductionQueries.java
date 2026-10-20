@@ -8,13 +8,22 @@ public interface ProductionQueries {
 
     ProductionReference getActiveLactation(UUID animalId);
 
-    BigDecimal getMilkProductionKg(
+    BigDecimal getMilkProductionLitres(
             UUID animalId,
             OffsetDateTime dateDebut,
             OffsetDateTime dateFinExclusive
     );
 
-    BigDecimal getTotalMilkProductionKg(
+    /**
+     * Volume de lait (litres) par jour civil UTC de l'exploitation courante, sur [debut, finInclusive].
+     * Les jours sans traite sont absents de la carte (aucun volume n'est inventé).
+     */
+    java.util.Map<java.time.LocalDate, BigDecimal> getDailyMilkProductionLitres(
+            java.time.LocalDate debut,
+            java.time.LocalDate finInclusive
+    );
+
+    BigDecimal getTotalMilkProductionLitres(
             OffsetDateTime dateDebut,
             OffsetDateTime dateFinExclusive
     );

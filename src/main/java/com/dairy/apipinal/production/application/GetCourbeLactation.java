@@ -23,8 +23,9 @@ public class GetCourbeLactation {
         this.traiteRepository = traiteRepository;
     }
 
-    public List<PointCourbe> execute(UUID tenantId, UUID lactationId) {
-        List<Traite> traites = traiteRepository.findAllByLactationIdAndTenantIdOrderByDateHeureAsc(lactationId, tenantId);
+    public List<PointCourbe> execute(UUID tenantId, UUID exploitationId, UUID lactationId) {
+        List<Traite> traites = traiteRepository.findAllByLactationIdAndTenantIdAndExploitationIdOrderByDateHeureAsc(
+                lactationId, tenantId, exploitationId);
 
         // Agréger par jour (LocalDate)
         Map<LocalDate, BigDecimal> productionParJour = traites.stream()
@@ -33,7 +34,7 @@ public class GetCourbeLactation {
                         TreeMap::new,
                         Collectors.reducing(
                                 BigDecimal.ZERO,
-                                Traite::getQuantiteKg,
+                                Traite::getQuantiteLitres,
                                 BigDecimal::add
                         )
                 ));
@@ -43,5 +44,5 @@ public class GetCourbeLactation {
                 .collect(Collectors.toList());
     }
 
-    public record PointCourbe(LocalDate date, BigDecimal quantiteKg) {}
+    public record PointCourbe(LocalDate date, BigDecimal quantiteLitres) {}
 }

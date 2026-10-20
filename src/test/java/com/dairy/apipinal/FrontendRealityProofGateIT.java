@@ -320,11 +320,11 @@ public class FrontendRealityProofGateIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(milkingReq)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.quantiteKg").value(14.5));
+                .andExpect(jsonPath("$.quantiteLitres").value(14.5));
 
-        // Verify DB traite (column quantite_kg)
+        // Verify DB traite (column quantite_litres)
         BigDecimal litresInDb = jdbcTemplate.queryForObject(
-                "SELECT quantite_kg FROM traite WHERE lactation_id = ? ORDER BY date_heure DESC LIMIT 1",
+                "SELECT quantite_litres FROM traite WHERE lactation_id = ? ORDER BY date_heure DESC LIMIT 1",
                 BigDecimal.class,
                 lactationId
         );
@@ -678,7 +678,7 @@ public class FrontendRealityProofGateIT {
                         .header("X-Exploitation-ID", exploitationId.toString()))
                 .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.kpis").exists())
+                .andExpect(jsonPath("$.moisEnCours.autresCharges").value(0.0))
                 .andExpect(jsonPath("$.transactions").isArray());
     }
 }

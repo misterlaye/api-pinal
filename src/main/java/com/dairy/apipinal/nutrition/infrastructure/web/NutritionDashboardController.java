@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/nutrition")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class NutritionDashboardController {
 
     private final NutritionDashboardQueries nutritionDashboardQueries;

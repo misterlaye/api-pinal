@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Prix de vente du lait, propres à chaque exploitation.
+ */
 public interface PrixVenteLaitRepository
         extends JpaRepository<PrixVenteLait, UUID> {
 
@@ -17,6 +20,7 @@ public interface PrixVenteLaitRepository
         select p
         from PrixVenteLait p
         where p.tenantId = :tenantId
+          and p.exploitationId = :exploitationId
           and p.dateDebut <= :date
           and (
                 p.dateFin is null
@@ -25,17 +29,41 @@ public interface PrixVenteLaitRepository
         """)
     Optional<PrixVenteLait> findApplicablePrice(
             @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
             @Param("date") LocalDate date
     );
 
-    List<PrixVenteLait> findAllByTenantIdOrderByDateDebutDesc(
-            UUID tenantId
+    /** Prix dont la période recoupe [dateDebut, dateFin] : chargés en une seule requête pour un calcul de période. */
+    @Query("""
+        select p
+        from PrixVenteLait p
+        where p.tenantId = :tenantId
+          and p.exploitationId = :exploitationId
+          and p.dateDebut <= :dateFin
+          and (p.dateFin is null or p.dateFin >= :dateDebut)
+        """)
+    List<PrixVenteLait> findAllOverlappingPeriod(
+            @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
+            @Param("dateDebut") LocalDate dateDebut,
+            @Param("dateFin") LocalDate dateFin
+    );
+
+    List<PrixVenteLait> findAllByTenantIdAndExploitationIdOrderByDateDebutDesc(
+            UUID tenantId,
+            UUID exploitationId
+    );
+
+    Optional<PrixVenteLait> findFirstByTenantIdAndExploitationIdAndDateFinIsNull(
+            UUID tenantId,
+            UUID exploitationId
     );
 
     @Query("""
         select count(p) > 0
         from PrixVenteLait p
         where p.tenantId = :tenantId
+          and p.exploitationId = :exploitationId
           and p.dateDebut <= :dateFin
           and (
                 p.dateFin is null
@@ -44,6 +72,7 @@ public interface PrixVenteLaitRepository
         """)
     boolean existsOverlappingPeriodWithEndDate(
             @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
             @Param("dateDebut") LocalDate dateDebut,
             @Param("dateFin") LocalDate dateFin
     );
@@ -52,6 +81,7 @@ public interface PrixVenteLaitRepository
         select count(p) > 0
         from PrixVenteLait p
         where p.tenantId = :tenantId
+          and p.exploitationId = :exploitationId
           and (
                 p.dateFin is null
                 or p.dateFin >= :dateDebut
@@ -59,6 +89,7 @@ public interface PrixVenteLaitRepository
         """)
     boolean existsOverlappingOpenEndedPeriod(
             @Param("tenantId") UUID tenantId,
+            @Param("exploitationId") UUID exploitationId,
             @Param("dateDebut") LocalDate dateDebut
     );
 }

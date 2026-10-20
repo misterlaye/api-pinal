@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/lactations/{lactationId}/analyses")
-@org.springframework.security.access.prepost.PreAuthorize("@authz.isWorkerOrOwner()")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class MilkAnalysisController {
 
     private final EnregistrerAnalyseLait enregistrerAnalyseLait;
@@ -41,6 +41,7 @@ public class MilkAnalysisController {
         AnalyseLait analyse = enregistrerAnalyseLait.execute(
                 new EnregistrerAnalyseLait.Command(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         lactationId,
                         tenantContext.currentUserId(),
                         request.dateAnalyse(),
@@ -58,7 +59,11 @@ public class MilkAnalysisController {
     @GetMapping
     public ResponseEntity<java.util.List<AnalyseLaitResponse>> getAnalyses(@PathVariable UUID lactationId) {
         return ResponseEntity.ok(
-                analyseLaitRepository.findAllByLactationIdOrderByDateAnalyseDesc(lactationId)
+                analyseLaitRepository.findAllByLactationIdAndTenantIdAndExploitationIdOrderByDateAnalyseDesc(
+                                lactationId,
+                                tenantContext.currentTenantId(),
+                                tenantContext.currentExploitationId()
+                        )
                         .stream()
                         .map(AnalyseLaitResponse::from)
                         .toList()

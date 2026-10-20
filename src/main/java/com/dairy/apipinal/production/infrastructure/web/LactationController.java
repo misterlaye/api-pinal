@@ -15,6 +15,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/lactations")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class LactationController {
 
     private final StartLactation startLactation;
@@ -66,6 +67,7 @@ public class LactationController {
         return LactationResponse.from(
                 getLactation.execute(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         lactationId
                 )
         );
@@ -83,6 +85,7 @@ public class LactationController {
         Lactation lactation = terminerLactation.execute(
                 new TerminerLactation.Command(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         animalId,
                         dateFin,
                         tenantContext.currentUserId()
@@ -94,9 +97,10 @@ public class LactationController {
 
     @GetMapping("/animals/{animalId}/active")
     public ResponseEntity<LactationResponse> getActiveLactation(@PathVariable UUID animalId) {
-        return lactationRepository.findByAnimalIdAndTenantIdAndStatut(
+        return lactationRepository.findByAnimalIdAndTenantIdAndExploitationIdAndStatut(
                         animalId,
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         com.dairy.apipinal.production.domain.StatutLactation.EN_COURS
                 )
                 .map(LactationResponse::from)

@@ -33,7 +33,7 @@ public class StartLactation {
     public Lactation execute(Command command) {
 
         AnimalReference animal =
-                animalQueries.getReference(command.animalId());
+                animalQueries.getReference(command.animalId(), command.tenantId(), command.exploitationId());
 
         if (!"ACTIF".equals(animal.statut())) {
             throw new IllegalStateException(
@@ -47,9 +47,18 @@ public class StartLactation {
             );
         }
 
-        lactationRepository.findByAnimalIdAndTenantIdAndStatut(
+        if ("MALE".equals(animal.sexe())) {
+            throw new IllegalStateException("Une lactation ne peut concerner qu'une femelle.");
+        }
+
+        if (command.dateDebut() == null || command.dateDebut().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La date de début de lactation est obligatoire et ne peut pas être dans le futur.");
+        }
+
+        lactationRepository.findByAnimalIdAndTenantIdAndExploitationIdAndStatut(
                 command.animalId(),
                 command.tenantId(),
+                command.exploitationId(),
                 com.dairy.apipinal.production.domain.StatutLactation.EN_COURS
         ).ifPresent(activeLactation -> {
             // Auto-close the previous lactation on the day before the new calving

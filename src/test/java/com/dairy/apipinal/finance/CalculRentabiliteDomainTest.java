@@ -20,6 +20,7 @@ class CalculRentabiliteDomainTest {
         CalculRentabilite calcul =
                 CalculRentabilite.calculate(
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         OffsetDateTime.now(ZoneOffset.UTC),
                         LocalDate.of(2026, 9, 1),
                         LocalDate.of(2026, 9, 30),
@@ -52,6 +53,7 @@ class CalculRentabiliteDomainTest {
                 IllegalArgumentException.class,
                 () -> CalculRentabilite.calculate(
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         OffsetDateTime.now(ZoneOffset.UTC),
                         LocalDate.of(2026, 9, 1),
                         LocalDate.of(2026, 9, 30),
@@ -70,6 +72,7 @@ class CalculRentabiliteDomainTest {
                 IllegalArgumentException.class,
                 () -> CalculRentabilite.calculate(
                         UUID.randomUUID(),
+                        UUID.randomUUID(),
                         OffsetDateTime.now(ZoneOffset.UTC),
                         LocalDate.of(2026, 9, 30),
                         LocalDate.of(2026, 9, 1),
@@ -86,6 +89,7 @@ class CalculRentabiliteDomainTest {
 
         CalculRentabilite calcul =
                 CalculRentabilite.calculate(
+                        UUID.randomUUID(),
                         UUID.randomUUID(),
                         OffsetDateTime.now(ZoneOffset.UTC),
                         LocalDate.of(2026, 9, 1),

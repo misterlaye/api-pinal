@@ -2,7 +2,6 @@ package com.dairy.apipinal.finance;
 
 import com.dairy.apipinal.finance.application.AnimalRentabilityResult;
 import com.dairy.apipinal.finance.application.AnimalRentabilityService;
-import com.dairy.apipinal.finance.application.MilkVolumeConversionPolicy;
 import com.dairy.apipinal.finance.domain.PrixVenteLait;
 import com.dairy.apipinal.finance.infrastructure.persistence.PrixVenteLaitRepository;
 import com.dairy.apipinal.nutrition.api.FeedCostReference;
@@ -38,9 +37,6 @@ class AnimalRentabilityServiceTest {
     private PrixVenteLaitRepository prixVenteLaitRepository;
 
     @Mock
-    private MilkVolumeConversionPolicy milkVolumeConversionPolicy;
-
-    @Mock
     private TenantContext tenantContext;
 
     private AnimalRentabilityService service;
@@ -51,7 +47,6 @@ class AnimalRentabilityServiceTest {
                 productionQueries,
                 nutritionQueries,
                 prixVenteLaitRepository,
-                milkVolumeConversionPolicy,
                 tenantContext
         );
     }
@@ -68,6 +63,8 @@ class AnimalRentabilityServiceTest {
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
+
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(
                 nutritionQueries.calculateFeedCost(
@@ -87,7 +84,7 @@ class AnimalRentabilityServiceTest {
         );
 
         when(
-                productionQueries.getMilkProductionKg(
+                productionQueries.getMilkProductionLitres(
                         animalId,
                         dayStart(jour1),
                         dayStart(jour2)
@@ -95,24 +92,14 @@ class AnimalRentabilityServiceTest {
         ).thenReturn(new BigDecimal("10.000"));
 
         when(
-                productionQueries.getMilkProductionKg(
+                productionQueries.getMilkProductionLitres(
                         animalId,
                         dayStart(jour2),
                         dayStart(jour2.plusDays(1))
                 )
         ).thenReturn(new BigDecimal("20.000"));
 
-        when(
-                milkVolumeConversionPolicy.convertKgToLitres(
-                        new BigDecimal("10.000")
-                )
-        ).thenReturn(new BigDecimal("10.000"));
 
-        when(
-                milkVolumeConversionPolicy.convertKgToLitres(
-                        new BigDecimal("20.000")
-                )
-        ).thenReturn(new BigDecimal("20.000"));
 
         PrixVenteLait prixJour1 =
                 new PrixVenteLait(tenantId, exploitationId,
@@ -129,18 +116,8 @@ class AnimalRentabilityServiceTest {
                 );
 
         when(
-                prixVenteLaitRepository.findApplicablePrice(
-                        tenantId,
-                        jour1
-                )
-        ).thenReturn(Optional.of(prixJour1));
-
-        when(
-                prixVenteLaitRepository.findApplicablePrice(
-                        tenantId,
-                        jour2
-                )
-        ).thenReturn(Optional.of(prixJour2));
+                prixVenteLaitRepository.findAllOverlappingPeriod(tenantId, exploitationId, jour1, jour2)
+        ).thenReturn(java.util.List.of(prixJour1, prixJour2));
 
         Optional<AnimalRentabilityResult> result =
                 service.calculate(
@@ -154,9 +131,6 @@ class AnimalRentabilityServiceTest {
 
         AnimalRentabilityResult rentability =
                 result.orElseThrow();
-
-        assertThat(rentability.volumeLaitKg())
-                .isEqualByComparingTo("30.000");
 
         assertThat(rentability.volumeLaitLitres())
                 .isEqualByComparingTo("30.000");
@@ -208,7 +182,6 @@ class AnimalRentabilityServiceTest {
 
         verifyNoInteractions(productionQueries);
         verifyNoInteractions(prixVenteLaitRepository);
-        verifyNoInteractions(milkVolumeConversionPolicy);
     }
 
     @Test
@@ -222,6 +195,8 @@ class AnimalRentabilityServiceTest {
 
         when(tenantContext.currentTenantId())
                 .thenReturn(tenantId);
+
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
         when(
                 nutritionQueries.calculateFeedCost(
@@ -241,7 +216,7 @@ class AnimalRentabilityServiceTest {
         );
 
         when(
-                productionQueries.getMilkProductionKg(
+                productionQueries.getMilkProductionLitres(
                         animalId,
                         dayStart(jour),
                         dayStart(jour.plusDays(1))
@@ -267,8 +242,6 @@ class AnimalRentabilityServiceTest {
         assertThat(result.orElseThrow().rentable())
                 .isFalse();
 
-        verifyNoInteractions(prixVenteLaitRepository);
-        verifyNoInteractions(milkVolumeConversionPolicy);
     }
 
     private static OffsetDateTime dayStart(LocalDate date) {

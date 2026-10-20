@@ -6,7 +6,7 @@ import com.dairy.apipinal.nutrition.domain.StatutRation;
 import com.dairy.apipinal.nutrition.infrastructure.persistence.RationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.modulith.events.ApplicationModuleListener;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -23,7 +23,11 @@ public class AnimalSortiNutritionListener {
         this.rationRepository = rationRepository;
     }
 
-    @ApplicationModuleListener
+    /**
+     * Synchrone, dans la transaction de l'opération d'origine : un échec annule l'ensemble,
+     * aucun état intermédiaire incohérent entre modules n'est conservé.
+     */
+    @EventListener
     public void onAnimalSorti(AnimalSortiEvent event) {
         log.info("Animal {} sorti ({}). Clôture des rations actives.", event.animalId(), event.nouveauStatut());
         List<Ration> activeRations = rationRepository.findByAnimalIdAndTenantIdAndStatut(

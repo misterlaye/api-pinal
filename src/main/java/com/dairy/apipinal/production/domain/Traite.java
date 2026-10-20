@@ -41,8 +41,8 @@ public class Traite {
     @Column(nullable = false, length = 30)
     private TypeTraite type;
 
-    @Column(name = "quantite_kg", nullable = false, precision = 12, scale = 3)
-    private BigDecimal quantiteKg;
+    @Column(name = "quantite_litres", nullable = false, precision = 12, scale = 3)
+    private BigDecimal quantiteLitres;
 
     @Column(name = "date_heure_saisie", nullable = false)
     private OffsetDateTime dateHeureSaisie;
@@ -61,11 +61,11 @@ public class Traite {
             UUID auteurId,
             OffsetDateTime dateHeure,
             TypeTraite type,
-            BigDecimal quantiteKg,
+            BigDecimal quantiteLitres,
             OffsetDateTime dateHeureSaisie
     ) {
 
-        if (quantiteKg == null || quantiteKg.signum() < 0) {
+        if (quantiteLitres == null || quantiteLitres.signum() < 0) {
             throw new IllegalArgumentException(
                     "La quantité de lait doit être supérieure ou égale à zéro."
             );
@@ -99,7 +99,7 @@ public class Traite {
         this.auteurId = auteurId;
         this.dateHeure = dateHeure;
         this.type = type;
-        this.quantiteKg = quantiteKg;
+        this.quantiteLitres = quantiteLitres;
         this.dateHeureSaisie = dateHeureSaisie;
     }
 
@@ -131,8 +131,8 @@ public class Traite {
         return type;
     }
 
-    public BigDecimal getQuantiteKg() {
-        return quantiteKg;
+    public BigDecimal getQuantiteLitres() {
+        return quantiteLitres;
     }
 
     public OffsetDateTime getDateHeureSaisie() {

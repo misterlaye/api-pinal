@@ -21,14 +21,19 @@ public class TerminerLactation {
     @Transactional
     public Lactation execute(Command command) {
         Lactation activeLactation = lactationRepository
-                .findByAnimalIdAndTenantIdAndStatut(
+                .findByAnimalIdAndTenantIdAndExploitationIdAndStatut(
                         command.animalId(),
                         command.tenantId(),
+                        command.exploitationId(),
                         StatutLactation.EN_COURS
                 )
                 .orElseThrow(() -> new IllegalStateException(
                         "Impossible de tarir cette vache : aucune lactation en cours trouvée."
                 ));
+
+        if (command.dateFin() != null && command.dateFin().isAfter(java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("La date de tarissement ne peut pas être dans le futur.");
+        }
 
         activeLactation.terminer(command.dateFin(), command.actorId());
 
@@ -37,6 +42,7 @@ public class TerminerLactation {
 
     public record Command(
             UUID tenantId,
+            UUID exploitationId,
             UUID animalId,
             LocalDate dateFin,
             UUID actorId

@@ -1,7 +1,6 @@
 package com.dairy.apipinal.production.infrastructure.web;
 
 import com.dairy.apipinal.production.application.EnregistrerTraiteLot;
-import com.dairy.apipinal.production.domain.Traite;
 import com.dairy.apipinal.production.domain.TypeTraite;
 import com.dairy.apipinal.shared.security.TenantContext;
 import jakarta.validation.Valid;
@@ -15,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/milkings/batch")
@@ -33,32 +31,35 @@ public class BatchMilkingController {
         this.tenantContext = tenantContext;
     }
 
+    /**
+     * Enregistre les lignes valides et renvoie les lignes refusées avec leur motif.
+     * 201 si au moins une traite est enregistrée, 422 si aucune ne l'est.
+     */
     @PostMapping
-    public ResponseEntity<List<TraiteResponse>> createBatch(
+    public ResponseEntity<BatchMilkingResponse> createBatch(
             @Valid @RequestBody BatchMilkingRequest request
     ) {
-        List<EnregistrerTraiteLot.SaisieItem> items = request.items().stream()
-                .map(i -> new EnregistrerTraiteLot.SaisieItem(i.animalId(), i.quantiteKg()))
-                .collect(Collectors.toList());
-
-        List<Traite> traites = enregistrerTraiteLot.execute(
+        EnregistrerTraiteLot.Resultat resultat = enregistrerTraiteLot.execute(
                 new EnregistrerTraiteLot.Command(
                         tenantContext.currentTenantId(),
                         tenantContext.currentExploitationId(),
                         tenantContext.currentUserId(),
                         request.dateHeure(),
                         request.type(),
-                        items
+                        request.items().stream()
+                                .map(i -> new EnregistrerTraiteLot.SaisieItem(i.animalId(), i.quantiteLitres()))
+                                .toList()
                 )
         );
 
-        List<TraiteResponse> responses = traites.stream()
-                .map(TraiteResponse::from)
-                .collect(Collectors.toList());
+        BatchMilkingResponse body = new BatchMilkingResponse(
+                resultat.enregistrees().stream().map(TraiteResponse::from).toList(),
+                resultat.rejets().stream().map(r -> new BatchMilkingResponse.Rejet(r.animalId(), r.motif())).toList()
+        );
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(responses);
+                .status(resultat.enregistrees().isEmpty() ? HttpStatus.UNPROCESSABLE_ENTITY : HttpStatus.CREATED)
+                .body(body);
     }
 }
 
@@ -71,6 +72,14 @@ record BatchMilkingRequest(
 
 record BatchMilkingItem(
         @NotNull UUID animalId,
-        @NotNull BigDecimal quantiteKg
+        @NotNull BigDecimal quantiteLitres
 ) {
+}
+
+record BatchMilkingResponse(
+        List<TraiteResponse> enregistrees,
+        List<Rejet> rejets
+) {
+    record Rejet(UUID animalId, String motif) {
+    }
 }

@@ -9,14 +9,16 @@ public record ProductionDashboardSummary(
         List<AnimalProduction> animalProduction,
         List<HistoryEvent> history
 ) {
+    /**
+     * @param totalProduction      litres des 7 derniers jours civils (aujourd'hui inclus)
+     * @param totalProductionTrend évolution (%) par rapport aux 7 jours précédents, {@code null} sans référence
+     */
     public record Kpis(
             double totalProduction,
-            double totalProductionTrend,
+            Double totalProductionTrend,
             double averagePerAnimal,
             String averagePerAnimalLabel,
-            BestProducer bestProducer,
-            double collectionRate,
-            String collectionRateLabel
+            BestProducer bestProducer
     ) {}
 
     public record BestProducer(
@@ -39,8 +41,7 @@ public record ProductionDashboardSummary(
             double matin,
             double soir,
             double total,
-            double trend,
-            String status
+            Double trend
     ) {}
 
     public record HistoryEvent(

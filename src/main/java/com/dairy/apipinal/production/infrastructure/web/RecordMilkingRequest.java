@@ -17,5 +17,5 @@ public record RecordMilkingRequest(
 
         @NotNull
         @DecimalMin(value = "0.0", inclusive = true)
-        BigDecimal quantiteKg
+        BigDecimal quantiteLitres
 ) {}

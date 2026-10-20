@@ -44,8 +44,7 @@ class PrixVenteLaitServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(repository.existsOverlappingPeriodWithEndDate(
-                tenantId,
+        when(repository.existsOverlappingPeriodWithEndDate(tenantId, exploitationId,
                 debut,
                 fin
         )).thenReturn(false);
@@ -89,8 +88,7 @@ class PrixVenteLaitServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(repository.existsOverlappingPeriodWithEndDate(
-                tenantId,
+        when(repository.existsOverlappingPeriodWithEndDate(tenantId, exploitationId,
                 debut,
                 fin
         )).thenReturn(true);
@@ -120,8 +118,7 @@ class PrixVenteLaitServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(repository.existsOverlappingOpenEndedPeriod(
-                tenantId,
+        when(repository.existsOverlappingOpenEndedPeriod(tenantId, exploitationId,
                 debut
         )).thenReturn(true);
 
@@ -157,8 +154,7 @@ class PrixVenteLaitServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(repository.findApplicablePrice(
-                tenantId,
+        when(repository.findApplicablePrice(tenantId, exploitationId,
                 date
         )).thenReturn(Optional.of(price));
 

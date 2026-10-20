@@ -20,19 +20,16 @@ public class VelageEnregistreEventListener {
     @EventListener
     public void onVelageEnregistre(VelageEnregistreEvent event) {
         log.info("Réception de l'événement de vêlage pour l'animal {} : démarrage d'une nouvelle lactation.", event.animalId());
-        try {
-            startLactation.execute(new StartLactation.Command(
-                    event.tenantId(),
-                    event.exploitationId(),
-                    event.animalId(),
-                    event.cycleId(),
-                    event.dateVelage(),
-                    // Utilisation d'un ID par défaut pour les actions système (ou null si le constructeur l'accepte)
-                    event.tenantId()
-            ));
-            log.info("Nouvelle lactation démarrée avec succès pour l'animal {}.", event.animalId());
-        } catch (Exception e) {
-            log.error("Impossible de démarrer la lactation suite au vêlage de l'animal {} : {}", event.animalId(), e.getMessage());
-        }
+        // Pas de capture d'exception : si la lactation ne peut pas démarrer, le vêlage est annulé
+        // et l'utilisateur reçoit la cause, au lieu d'un vêlage enregistré sans lactation.
+        startLactation.execute(new StartLactation.Command(
+                event.tenantId(),
+                event.exploitationId(),
+                event.animalId(),
+                event.cycleId(),
+                event.dateVelage(),
+                event.actorId()
+        ));
+        log.info("Nouvelle lactation démarrée pour l'animal {}.", event.animalId());
     }
 }

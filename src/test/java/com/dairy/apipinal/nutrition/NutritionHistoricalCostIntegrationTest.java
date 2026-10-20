@@ -45,6 +45,9 @@ class NutritionHistoricalCostIntegrationTest {
     @MockitoBean private TenantContext tenantContext;
     @MockitoBean private AnimalQueries animalQueries;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private UUID tenantId;
     private UUID exploitationId;
     private UUID animalId;
@@ -57,8 +60,11 @@ class NutritionHistoricalCostIntegrationTest {
         animalId = UUID.randomUUID();
         when(tenantContext.currentTenantId()).thenReturn(tenantId);
         when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
+        insererExploitation();
 
         Aliment aliment = alimentRepository.saveAndFlush(new Aliment(
+                tenantId,
+                exploitationId,
                 UUID.randomUUID().toString(), "Foin", "FOURRAGE", UniteAliment.KG
         ));
         alimentId = aliment.getId();
@@ -75,7 +81,7 @@ class NutritionHistoricalCostIntegrationTest {
         assertThat(beforeClosing).isEqualByComparingTo("1250");
 
         previous.terminer(CURRENT_MONTH.minusDays(1));
-        rationRepository.saveAndFlush(previous);
+        rationRepository.saveAndFlush(avecAnimal(previous));
         Ration current = saveRation(tenantId, exploitationId, animalId, CURRENT_MONTH, "8", true);
         UUID previousId = previous.getId();
         UUID currentId = current.getId();
@@ -108,7 +114,7 @@ class NutritionHistoricalCostIntegrationTest {
     void historicalCostsExcludeDraftsOtherTenantsAndOtherExploitations() {
         Ration effective = saveRation(tenantId, exploitationId, animalId, PREVIOUS_MONTH, "5", true);
         effective.terminer(CURRENT_MONTH.minusDays(1));
-        rationRepository.saveAndFlush(effective);
+        rationRepository.saveAndFlush(avecAnimal(effective));
         UUID effectiveId = effective.getId();
 
         // A draft for the same animal must neither replace nor duplicate the historical ration.
@@ -144,6 +150,25 @@ class NutritionHistoricalCostIntegrationTest {
         if (activate) {
             ration.activer();
         }
-        return rationRepository.saveAndFlush(ration);
+        return rationRepository.saveAndFlush(avecAnimal(ration));
+    }
+
+    private void insererExploitation() {
+        jdbcTemplate.update(
+                "INSERT INTO tenant (id, nom, statut, created_at, updated_at, version) VALUES (?, 'Tenant test', 'ACTIF', NOW(), NOW(), 0)",
+                tenantId);
+        jdbcTemplate.update(
+                "INSERT INTO exploitation (id, tenant_id, nom, localite, actif, created_at, updated_at, version) VALUES (?, ?, 'Ferme test', 'Dakar', true, NOW(), NOW(), 0)",
+                exploitationId, tenantId);
+    }
+
+    /** Les rations référencent désormais un animal existant (clé étrangère) : il est créé si besoin. */
+    private com.dairy.apipinal.nutrition.domain.Ration avecAnimal(com.dairy.apipinal.nutrition.domain.Ration ration) {
+        jdbcTemplate.update("INSERT INTO animal (id, tenant_id, exploitation_id, race_id, identifiant, nom, statut, sexe, created_at, updated_at, version) "
+                + "SELECT ?, ?, ?, (SELECT id FROM race LIMIT 1), ?, 'Animal test', 'ACTIF', 'FEMELLE', NOW(), NOW(), 0 "
+                + "WHERE NOT EXISTS (SELECT 1 FROM animal WHERE id = ?)",
+                ration.getAnimalId(), ration.getTenantId(), ration.getExploitationId(),
+                "A-" + ration.getAnimalId().toString().substring(0, 8), ration.getAnimalId());
+        return ration;
     }
 }

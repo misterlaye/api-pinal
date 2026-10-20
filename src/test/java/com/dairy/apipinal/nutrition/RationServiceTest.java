@@ -130,10 +130,7 @@ class RationServiceTest {
         );
 
         when(
-                rationRepository.findByIdAndTenantId(
-                        rationId,
-                        tenantId
-                )
+                rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)
         ).thenReturn(Optional.of(ration));
 
         when(
@@ -181,10 +178,7 @@ class RationServiceTest {
         );
 
         when(
-                rationRepository.findByIdAndTenantId(
-                        rationId,
-                        tenantId
-                )
+                rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)
         ).thenReturn(Optional.of(ration));
 
         when(
@@ -218,10 +212,7 @@ class RationServiceTest {
         );
 
         when(
-                rationRepository.findByIdAndTenantId(
-                        rationId,
-                        tenantId
-                )
+                rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)
         ).thenReturn(Optional.of(ration));
 
         assertThatThrownBy(() ->
@@ -263,7 +254,7 @@ class RationServiceTest {
         ration.activer();
 
         // Le repository peut retourner la ration sans dépendre de son UUID généré.
-        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId))
                 .thenReturn(Optional.of(ration));
 
         when(rationRepository.save(ration))
@@ -302,7 +293,7 @@ class RationServiceTest {
                 OrigineRation.ACTUELLE
         );
 
-        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId))
                 .thenReturn(Optional.of(ration));
 
         assertThatThrownBy(() ->
@@ -342,7 +333,7 @@ class RationServiceTest {
 
         ration.activer();
 
-        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId))
                 .thenReturn(Optional.of(ration));
 
         assertThatThrownBy(() ->
@@ -376,7 +367,7 @@ class RationServiceTest {
                 OrigineRation.ACTUELLE
         );
 
-        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId))
                 .thenReturn(Optional.of(ration));
 
         assertThatThrownBy(() ->
@@ -403,7 +394,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(rationId, tenantId))
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
@@ -436,10 +427,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         Ration result = rationService.getRation(
                 new GetRation(rationId)
@@ -453,15 +441,14 @@ class RationServiceTest {
     void shouldNotReturnRationFromAnotherTenant() {
         UUID currentTenantId = UUID.randomUUID();
         UUID otherTenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId())
                 .thenReturn(currentTenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                currentTenantId
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, currentTenantId, exploitationId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
                 rationService.getRation(
@@ -481,10 +468,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
                 rationService.getRation(
@@ -527,8 +511,7 @@ class RationServiceTest {
                         com.dairy.apipinal.animal.api.AnimalReference.class
                 ));
 
-        when(rationRepository.findByTenantIdAndAnimalId(
-                tenantId,
+        when(rationRepository.findByTenantIdAndExploitationIdAndAnimalId(tenantId, exploitationId,
                 animalId,
                 pageable
         )).thenReturn(expected);
@@ -562,8 +545,7 @@ class RationServiceTest {
                         com.dairy.apipinal.animal.api.AnimalReference.class
                 ));
 
-        when(rationRepository.findByTenantIdAndAnimalId(
-                tenantId,
+        when(rationRepository.findByTenantIdAndExploitationIdAndAnimalId(tenantId, exploitationId,
                 animalId,
                 pageable
         )).thenReturn(expected);
@@ -614,10 +596,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         PrixAliment prixA = mock(PrixAliment.class);
         when(prixA.getPrixUnitaire())
@@ -678,10 +657,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         when(prixAlimentRepository.findApplicablePrice(
                 alimentId,
@@ -704,17 +680,16 @@ class RationServiceTest {
     void shouldNotCalculateCostForAnotherTenantRation() {
 
         UUID currentTenantId = UUID.randomUUID();
+        UUID exploitationId = UUID.randomUUID();
         UUID rationId = UUID.randomUUID();
 
         LocalDate dateCalcul = LocalDate.of(2026, 9, 17);
 
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId())
                 .thenReturn(currentTenantId);
+        org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                currentTenantId
-        )).thenReturn(Optional.empty());
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, currentTenantId, exploitationId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
                 rationService.calculateCost(
@@ -748,10 +723,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         assertThatThrownBy(() ->
                 rationService.calculateCost(
@@ -798,10 +770,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         PrixAliment prixJanvier = mock(PrixAliment.class);
         when(prixJanvier.getPrixUnitaire())
@@ -907,10 +876,7 @@ class RationServiceTest {
         org.mockito.Mockito.lenient().when(tenantContext.currentTenantId()).thenReturn(tenantId);
         org.mockito.Mockito.lenient().when(tenantContext.currentExploitationId()).thenReturn(exploitationId);
 
-        when(rationRepository.findByIdAndTenantId(
-                rationId,
-                tenantId
-        )).thenReturn(Optional.of(ration));
+        when(rationRepository.findByIdAndTenantIdAndExploitationId(rationId, tenantId, exploitationId)).thenReturn(Optional.of(ration));
 
         when(prixAlimentRepository.findApplicablePrice(
                 alimentId,

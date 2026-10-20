@@ -2,194 +2,97 @@ package com.dairy.apipinal.dashboard;
 
 import com.dairy.apipinal.dashboard.api.DashboardSummary;
 import com.dairy.apipinal.dashboard.application.DashboardQueriesImpl;
-import com.dairy.apipinal.nutrition.api.ExploitationFeedCostReference;
-import com.dairy.apipinal.nutrition.api.NutritionQueries;
+import com.dairy.apipinal.finance.api.FinanceQueries;
+import com.dairy.apipinal.finance.api.ResultatFinancier;
 import com.dairy.apipinal.production.api.ProductionQueries;
+import com.dairy.apipinal.shared.security.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
-import com.dairy.apipinal.shared.security.TenantContext;
 
 import java.math.BigDecimal;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardQueriesTest {
 
-    @Mock
-    private ProductionQueries productionQueries;
-
-    @Mock
-    private NutritionQueries nutritionQueries;
-
-    @Mock
-    private JdbcTemplate jdbcTemplate;
-
-    @Mock
-    private TenantContext tenantContext;
+    @Mock private ProductionQueries productionQueries;
+    @Mock private FinanceQueries financeQueries;
+    @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private TenantContext tenantContext;
 
     private DashboardQueriesImpl dashboardQueries;
+    private final UUID tenant = UUID.randomUUID();
+    private final UUID exploitation = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        dashboardQueries = new DashboardQueriesImpl(
-                productionQueries,
-                nutritionQueries,
-                jdbcTemplate,
-                tenantContext
-        );
+        dashboardQueries = new DashboardQueriesImpl(productionQueries, financeQueries, jdbcTemplate, tenantContext);
+        when(tenantContext.currentTenantId()).thenReturn(tenant);
+        when(tenantContext.currentExploitationId()).thenReturn(exploitation);
     }
 
     @Test
-    void shouldReturnDashboardSummary() {
+    void productionUsesCalendarDaysAndFinanceComesFromTheFinanceModule() {
+        LocalDate today = LocalDate.now();
+        Map<LocalDate, BigDecimal> lait = new TreeMap<>();
+        lait.put(today, new BigDecimal("40"));
+        lait.put(today.minusDays(6), new BigDecimal("30"));
+        lait.put(today.minusDays(7), new BigDecimal("100"));   // hors des 7 derniers jours
+        lait.put(today.minusDays(29), new BigDecimal("10"));
+        when(productionQueries.getDailyMilkProductionLitres(today.minusDays(29), today)).thenReturn(lait);
 
-        // =========================================================
-        // Context variables
-        // =========================================================
-        java.util.UUID testTenant = java.util.UUID.randomUUID();
-        java.util.UUID testExploitation = java.util.UUID.randomUUID();
+        when(jdbcTemplate.queryForObject(contains("FROM animal WHERE statut = 'ACTIF'"), eq(Long.class), eq(tenant), eq(exploitation)))
+                .thenReturn(12L);
+        when(jdbcTemplate.queryForObject(contains("FROM lactation l JOIN animal"), eq(Long.class), eq(tenant), eq(exploitation)))
+                .thenReturn(2L);
+        when(jdbcTemplate.queryForObject(contains("sexe = 'FEMELLE'"), eq(Long.class), eq(tenant), eq(exploitation)))
+                .thenReturn(3L);
+        when(jdbcTemplate.queryForList(anyString(), eq(BigDecimal.class), eq(tenant), eq(exploitation)))
+                .thenReturn(List.of(new BigDecimal("450")));
 
-        // =========================================================
-        // Production
-        // =========================================================
-
-        when(productionQueries.getTotalMilkProductionKg(any(), any()))
-                .thenReturn(new BigDecimal("120.50"))
-                .thenReturn(new BigDecimal("840.00"))
-                .thenReturn(new BigDecimal("3600.00"));
-
-        // =========================================================
-        // Troupeau
-        // =========================================================
-
-        when(jdbcTemplate.queryForObject(
-                eq("SELECT COUNT(id) FROM animal WHERE statut = 'ACTIF' AND tenant_id = ? AND exploitation_id = ?"),
-                eq(Long.class),
-                eq(testTenant),
-                eq(testExploitation)
-        )).thenReturn(12L);
-
-        when(jdbcTemplate.queryForObject(
-                eq("SELECT COUNT(DISTINCT l.animal_id) FROM lactation l JOIN animal a ON l.animal_id = a.id WHERE a.statut = 'ACTIF' AND l.statut = 'EN_COURS' AND l.tenant_id = ? AND l.exploitation_id = ?"),
-                eq(Long.class),
-                eq(testTenant),
-                eq(testExploitation)
-        )).thenReturn(10L);
-
-        when(jdbcTemplate.queryForObject(
-                eq("SELECT COUNT(id) FROM animal a WHERE statut = 'ACTIF' AND sexe = 'FEMELLE' AND tenant_id = ? AND exploitation_id = ? " +
-                "AND EXISTS (SELECT 1 FROM lactation l WHERE l.animal_id = a.id) " +
-                "AND NOT EXISTS (SELECT 1 FROM lactation l2 WHERE l2.animal_id = a.id AND l2.statut = 'EN_COURS')"),
-                eq(Long.class),
-                eq(testTenant),
-                eq(testExploitation)
-        )).thenReturn(2L);
-
-        // =========================================================
-        // Nutrition
-        // =========================================================
-
-        ExploitationFeedCostReference feedCostRef =
-                new ExploitationFeedCostReference(
-                        java.time.LocalDate.now().minusDays(30),
-                        java.time.LocalDate.now(),
-                        new BigDecimal("600000.00")
-                );
-
-        when(nutritionQueries.calculateTotalFeedCost(any(), any()))
-                .thenReturn(Optional.of(feedCostRef));
-
-        when(jdbcTemplate.queryForObject(
-                eq("SELECT prix_par_litre FROM prix_vente_lait WHERE tenant_id = ? AND date_debut <= CURRENT_DATE AND (date_fin IS NULL OR date_fin >= CURRENT_DATE) ORDER BY date_debut DESC LIMIT 1"),
-                eq(BigDecimal.class),
-                eq(testTenant)
-        )).thenReturn(new BigDecimal("450.00"));
-
-        // =========================================================
-        // Context
-        // =========================================================
-        
-        when(tenantContext.currentTenantId()).thenReturn(testTenant);
-        when(tenantContext.currentExploitationId()).thenReturn(testExploitation);
-
-        // =========================================================
-        // Exécution
-        // =========================================================
+        ResultatFinancier finance = new ResultatFinancier(today.minusDays(29), today, new BigDecimal("180"), null, null,
+                null, null, BigDecimal.ZERO, null, null, null, null,
+                List.of(new ResultatFinancier.Avertissement("PRIX_LAIT_MANQUANT", "Prix manquant")));
+        when(financeQueries.calculerPeriode(today.minusDays(29), today)).thenReturn(finance);
 
         DashboardSummary summary = dashboardQueries.getDashboardSummary();
 
-        // =========================================================
-        // Vérifications
-        // =========================================================
+        assertThat(summary.production().litresAujourdhui()).isEqualByComparingTo("40");
+        assertThat(summary.production().litresDerniers7Jours()).isEqualByComparingTo("70");
+        assertThat(summary.production().litresDerniers30Jours()).isEqualByComparingTo("180");
+        assertThat(summary.production().moyenneParVacheLactationLitres()).isEqualByComparingTo("5");   // 70 / 7 / 2
+        assertThat(summary.troupeau().totalAnimaux()).isEqualTo(12);
+        assertThat(summary.troupeau().vachesEnLactation()).isEqualTo(2);
+        assertThat(summary.troupeau().vachesTaries()).isEqualTo(3);
+        assertThat(summary.finance().prixLaitActuelParLitre()).isEqualByComparingTo("450");
+        assertThat(summary.finance().derniers30Jours()).isSameAs(finance);
+    }
 
-        assertNotNull(summary);
+    @Test
+    void averagePerCowIsUnknownWithoutCowsInLactation() {
+        LocalDate today = LocalDate.now();
+        when(productionQueries.getDailyMilkProductionLitres(today.minusDays(29), today)).thenReturn(Map.of());
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(tenant), eq(exploitation))).thenReturn(0L);
+        when(jdbcTemplate.queryForList(anyString(), eq(BigDecimal.class), eq(tenant), eq(exploitation))).thenReturn(List.of());
 
-        // Production
-        assertEquals(
-                new BigDecimal("120.50"),
-                summary.production().kgAujourdhui()
-        );
+        DashboardSummary summary = dashboardQueries.getDashboardSummary();
 
-        assertEquals(
-                new BigDecimal("840.00"),
-                summary.production().kgDerniers7Jours()
-        );
-
-        assertEquals(
-                new BigDecimal("3600.00"),
-                summary.production().kgDerniers30Jours()
-        );
-
-        assertEquals(
-                new BigDecimal("12.00"),
-                summary.production().moyenneParVacheLactationKg()
-        );
-
-
-        // Troupeau
-        assertEquals(
-                12L,
-                summary.troupeau().totalAnimaux()
-        );
-
-        assertEquals(
-                10L,
-                summary.troupeau().vachesEnLactation()
-        );
-
-        assertEquals(
-                2L, // 12 vaches laitières - 10 en lactation
-                summary.troupeau().vachesTaries()
-        );
-
-        // Finance
-        assertEquals(
-                new BigDecimal("450.00"),
-                summary.finance().prixMoyenLaitParKg()
-        );
-
-        assertEquals(
-                new BigDecimal("20000.00"),
-                summary.finance().coutMoyenRationParJour()
-        );
-
-        assertEquals(
-                new BigDecimal("1620000.0000"),
-                summary.finance().chiffreAffairesEstimeLait30Jours()
-        );
-
-        assertEquals(
-                new BigDecimal("1020000.0000"),
-                summary.finance().margeEstimeeSurCoutAlimentaire30Jours()
-        );
+        assertThat(summary.production().litresAujourdhui()).isZero();
+        assertThat(summary.production().moyenneParVacheLactationLitres()).isNull();
+        assertThat(summary.finance().prixLaitActuelParLitre()).isNull();
     }
 }

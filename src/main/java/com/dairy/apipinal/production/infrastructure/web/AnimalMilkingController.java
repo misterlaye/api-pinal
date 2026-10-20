@@ -39,7 +39,7 @@ public class AnimalMilkingController {
                         tenantContext.currentUserId(),
                         request.dateHeure(),
                         request.type(),
-                        request.quantiteKg()
+                        request.quantiteLitres()
                 )
         );
 

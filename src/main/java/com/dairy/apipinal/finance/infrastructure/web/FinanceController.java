@@ -166,7 +166,6 @@ public class FinanceController {
                                           "animalId": "7f84c2ea-7cf0-4fd5-85ad-3dbcf1f1d211",
                                           "dateDebut": "2026-09-01",
                                           "dateFin": "2026-09-30",
-                                          "volumeLaitKg": 700.000,
                                           "volumeLaitLitres": 700.000,
                                           "chiffreAffaires": 420000.0000,
                                           "coutAlimentation": 120000.0000,

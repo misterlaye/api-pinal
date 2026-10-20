@@ -77,9 +77,10 @@ public class RationService {
         UUID tenantId = tenantContext.currentTenantId();
 
         Ration ration = rationRepository
-                .findByIdAndTenantId(
+                .findByIdAndTenantIdAndExploitationId(
                         command.rationId(),
-                        tenantId
+                        tenantId,
+                        tenantContext.currentExploitationId()
                 )
                 .orElseThrow(() ->
                         new IllegalArgumentException(
@@ -94,7 +95,11 @@ public class RationService {
         }
 
         alimentRepository
-                .findByIdAndActifTrue(command.alimentId())
+                .findByIdAndTenantIdAndExploitationIdAndActifTrue(
+                        command.alimentId(),
+                        tenantId,
+                        tenantContext.currentExploitationId()
+                )
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Aliment introuvable ou inactif : "
@@ -118,9 +123,10 @@ public class RationService {
         UUID tenantId = tenantContext.currentTenantId();
 
         Ration ration = rationRepository
-                .findByIdAndTenantId(
+                .findByIdAndTenantIdAndExploitationId(
                         rationId,
-                        tenantId
+                        tenantId,
+                        tenantContext.currentExploitationId()
                 )
                 .orElseThrow(() ->
                         new IllegalArgumentException(
@@ -179,7 +185,7 @@ public class RationService {
         UUID tenantId = tenantContext.currentTenantId();
 
         Ration ration = rationRepository
-                .findByIdAndTenantId(command.rationId(), tenantId)
+                .findByIdAndTenantIdAndExploitationId(command.rationId(), tenantId, tenantContext.currentExploitationId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Ration introuvable."
                 ));
@@ -202,7 +208,7 @@ public class RationService {
         UUID tenantId = tenantContext.currentTenantId();
 
         Ration ration = rationRepository
-                .findByIdAndTenantId(query.rationId(), tenantId)
+                .findByIdAndTenantIdAndExploitationId(query.rationId(), tenantId, tenantContext.currentExploitationId())
                 .orElseThrow(() -> new IllegalArgumentException("Ration introuvable."));
         ration.getLignes().size();
         return ration;
@@ -214,8 +220,9 @@ public class RationService {
 
         animalQueries.getReference(query.animalId());
 
-        Page<Ration> page = rationRepository.findByTenantIdAndAnimalId(
+        Page<Ration> page = rationRepository.findByTenantIdAndExploitationIdAndAnimalId(
                 tenantId,
+                tenantContext.currentExploitationId(),
                 query.animalId(),
                 query.pageable()
         );
@@ -228,7 +235,7 @@ public class RationService {
         UUID tenantId = tenantContext.currentTenantId();
 
         Ration ration = rationRepository
-                .findByIdAndTenantId(query.rationId(), tenantId)
+                .findByIdAndTenantIdAndExploitationId(query.rationId(), tenantId, tenantContext.currentExploitationId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Ration introuvable."
                 ));
@@ -285,9 +292,12 @@ public class RationService {
      * Résultat identique à la somme de calculateCost(...) pour chaque ration
      * effective chaque jour, mais calculé en mémoire à partir de deux requêtes
      * (rations + lignes, prix de la période) au lieu de plusieurs par jour et par ration.
+     * <p>
+     * Un jour sans prix applicable pour un aliment distribué rend le coût incomplet :
+     * les jours concernés sont signalés, jamais valorisés à zéro.
      */
     @Transactional(readOnly = true)
-    public BigDecimal calculateTotalCostOverPeriod(
+    public CoutPeriode calculateTotalCostOverPeriod(
             UUID tenantId,
             UUID exploitationId,
             LocalDate dateDebut,
@@ -315,6 +325,7 @@ public class RationService {
                         .collect(Collectors.groupingBy(PrixAliment::getAlimentId));
 
         BigDecimal total = BigDecimal.ZERO;
+        Map<UUID, LocalDate[]> joursSansPrix = new java.util.LinkedHashMap<>();
 
         for (LocalDate date = dateDebut; date.isBefore(dateFinExclusive); date = date.plusDays(1)) {
             for (Ration ration : rations) {
@@ -327,12 +338,41 @@ public class RationService {
                             ligne.getAlimentId(),
                             date
                     );
+                    if (prix == null) {
+                        LocalDate jour = date;
+                        joursSansPrix.merge(ligne.getAlimentId(), new LocalDate[]{jour, jour},
+                                (bornes, nouvelles) -> new LocalDate[]{bornes[0], nouvelles[1]});
+                        continue;
+                    }
                     total = total.add(ligne.getQuantite().multiply(prix.getPrixUnitaire()));
                 }
             }
         }
 
-        return total;
+        Map<UUID, String> noms = joursSansPrix.isEmpty()
+                ? Map.of()
+                : alimentRepository.findAllById(joursSansPrix.keySet()).stream()
+                        .collect(Collectors.toMap(Aliment::getId, Aliment::getNom));
+
+        List<com.dairy.apipinal.nutrition.api.PrixAlimentManquant> manquants = joursSansPrix.entrySet().stream()
+                .map(e -> new com.dairy.apipinal.nutrition.api.PrixAlimentManquant(
+                        e.getKey(), noms.getOrDefault(e.getKey(), "Aliment"), e.getValue()[0], e.getValue()[1]))
+                .toList();
+
+        return new CoutPeriode(total, manquants);
+    }
+
+    /**
+     * Coût d'une période : {@code coutConnu} additionne les jours valorisables ;
+     * le coût n'est complet que si {@code prixManquants} est vide.
+     */
+    public record CoutPeriode(
+            BigDecimal coutConnu,
+            List<com.dairy.apipinal.nutrition.api.PrixAlimentManquant> prixManquants
+    ) {
+        public boolean complet() {
+            return prixManquants.isEmpty();
+        }
     }
 
     private static boolean estEffective(Ration ration, LocalDate date) {
@@ -350,11 +390,13 @@ public class RationService {
                         && (p.getDateFin() == null || !p.getDateFin().isBefore(date)))
                 .toList();
 
-        if (applicables.size() != 1) {
+        if (applicables.isEmpty()) {
+            return null;
+        }
+        if (applicables.size() > 1) {
+            // Impossible en base (contrainte d'exclusion) : incohérence de données, jamais masquée.
             throw new IllegalStateException(
-                    (applicables.isEmpty() ? "Aucun prix applicable" : "Plusieurs prix applicables")
-                            + " pour l'aliment " + alimentId
-                            + " à la date " + date
+                    "Plusieurs prix applicables pour l'aliment " + alimentId + " à la date " + date
             );
         }
         return applicables.getFirst();

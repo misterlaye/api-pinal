@@ -43,14 +43,14 @@ class DashboardControllerTest {
         DashboardSummary summary = new DashboardSummary(
                 new DashboardSummary.ProductionSummary(new BigDecimal("100"), new BigDecimal("700"), new BigDecimal("3000"), new BigDecimal("100")),
                 new DashboardSummary.HerdSummary(10, 7, 3),
-                new DashboardSummary.FinancialSummary(new BigDecimal("450"), new BigDecimal("2000"), new BigDecimal("1350000"), new BigDecimal("750000"))
+                new DashboardSummary.FinancialSummary(new BigDecimal("450"), null)
         );
 
         when(dashboardQueries.getDashboardSummary()).thenReturn(summary);
 
         mockMvc.perform(get("/api/v1/dashboard/summary"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.production.kgAujourdhui").value(100));
+                .andExpect(jsonPath("$.production.litresAujourdhui").value(100));
     }
 
     @Test

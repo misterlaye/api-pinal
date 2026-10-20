@@ -89,6 +89,18 @@ public class PrixAliment {
         }
     }
 
+    /**
+     * Clôt une période de prix ouverte (succession par un nouveau prix).
+     */
+    public void cloturerAu(LocalDate dateFin) {
+        Objects.requireNonNull(dateFin, "La date de fin est obligatoire.");
+        if (this.dateFin != null) {
+            throw new IllegalStateException("Ce prix est déjà clôturé.");
+        }
+        validatePeriod(this.dateDebut, dateFin);
+        this.dateFin = dateFin;
+    }
+
     public UUID getId() {
         return id;
     }

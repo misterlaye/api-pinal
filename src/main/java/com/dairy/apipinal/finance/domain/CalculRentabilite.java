@@ -30,6 +30,9 @@ public class CalculRentabilite {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 
+    @Column(name = "exploitation_id", nullable = false, updatable = false)
+    private UUID exploitationId;
+
     @Column(name = "date_calcul", nullable = false)
     private OffsetDateTime dateCalcul;
 
@@ -69,6 +72,7 @@ public class CalculRentabilite {
 
     private CalculRentabilite(
             UUID tenantId,
+            UUID exploitationId,
             OffsetDateTime dateCalcul,
             LocalDate periodeDebut,
             LocalDate periodeFin,
@@ -81,6 +85,7 @@ public class CalculRentabilite {
             BigDecimal marge
     ) {
         this.tenantId = tenantId;
+        this.exploitationId = exploitationId;
         this.dateCalcul = dateCalcul;
         this.periodeDebut = periodeDebut;
         this.periodeFin = periodeFin;
@@ -95,6 +100,7 @@ public class CalculRentabilite {
 
     public static CalculRentabilite calculate(
             UUID tenantId,
+            UUID exploitationId,
             OffsetDateTime dateCalcul,
             LocalDate periodeDebut,
             LocalDate periodeFin,
@@ -104,6 +110,7 @@ public class CalculRentabilite {
             BigDecimal autresCharges
     ) {
         Objects.requireNonNull(tenantId);
+        Objects.requireNonNull(exploitationId);
         Objects.requireNonNull(dateCalcul);
         Objects.requireNonNull(periodeDebut);
         Objects.requireNonNull(periodeFin);
@@ -155,6 +162,7 @@ public class CalculRentabilite {
 
         return new CalculRentabilite(
                 tenantId,
+                exploitationId,
                 dateCalcul,
                 periodeDebut,
                 periodeFin,
@@ -193,6 +201,10 @@ public class CalculRentabilite {
 
     public UUID getTenantId() {
         return tenantId;
+    }
+
+    public UUID getExploitationId() {
+        return exploitationId;
     }
 
     public OffsetDateTime getDateCalcul() {

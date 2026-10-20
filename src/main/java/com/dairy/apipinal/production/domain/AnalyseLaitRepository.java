@@ -8,5 +8,9 @@ import java.util.UUID;
 
 @Repository
 public interface AnalyseLaitRepository extends JpaRepository<AnalyseLait, UUID> {
-    List<AnalyseLait> findAllByLactationIdOrderByDateAnalyseDesc(UUID lactationId);
+    List<AnalyseLait> findAllByLactationIdAndTenantIdAndExploitationIdOrderByDateAnalyseDesc(
+            UUID lactationId,
+            UUID tenantId,
+            UUID exploitationId
+    );
 }

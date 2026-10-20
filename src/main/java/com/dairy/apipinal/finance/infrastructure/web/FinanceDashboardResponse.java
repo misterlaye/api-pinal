@@ -1,40 +1,35 @@
 package com.dairy.apipinal.finance.infrastructure.web;
 
+import com.dairy.apipinal.finance.api.ResultatFinancier;
+
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Tableau de bord financier de l'exploitation courante.
+ *
+ * @param moisEnCours      indicateurs du 1er du mois à aujourd'hui (valeurs {@code null} si non calculables,
+ *                         avec avertissements explicatifs)
+ * @param historique       chiffre d'affaires et coût total des trois mois précédents et du mois en cours,
+ *                         calculés selon les mêmes règles ({@code null} = non calculable)
+ * @param chargesRepartition répartition des coûts du mois en cours, en FCFA
+ * @param transactions     charges saisies du mois en cours
+ */
 public record FinanceDashboardResponse(
-        Kpis kpis,
-        RevenueVsCharges revenueVsCharges,
+        ResultatFinancier moisEnCours,
+        Historique historique,
         ChargesRepartition chargesRepartition,
-        Rentability rentability,
         List<TransactionResponse> transactions
 ) {
-    public record Kpis(
-            BigDecimal coutRevient,
-            int coutRevientTrend,
-            BigDecimal prixMoyenVente,
-            BigDecimal margeBrute,
-            int margeBruteTrend,
-            BigDecimal chiffreAffaires,
-            int chiffreAffairesTrend
-    ) {}
-
-    public record RevenueVsCharges(
+    public record Historique(
             List<String> labels,
-            List<BigDecimal> revenues,
-            List<BigDecimal> charges
+            List<BigDecimal> chiffreAffaires,
+            List<BigDecimal> coutTotal
     ) {}
 
     public record ChargesRepartition(
             List<String> labels,
-            List<Integer> data,
-            List<String> colors
-    ) {}
-
-    public record Rentability(
-            BigDecimal netProfit,
-            BigDecimal netMarginPercentage,
-            int trend
+            List<BigDecimal> montants,
+            boolean coutAlimentationPartiel
     ) {}
 }

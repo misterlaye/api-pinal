@@ -7,19 +7,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Snapshots de rentabilité, propres à chaque exploitation.
+ */
 public interface CalculRentabiliteRepository
         extends JpaRepository<CalculRentabilite, UUID> {
 
     Optional<CalculRentabilite>
-    findFirstByTenantIdOrderByDateCalculDesc(UUID tenantId);
-    
+    findFirstByTenantIdAndExploitationIdOrderByDateCalculDesc(UUID tenantId, UUID exploitationId);
+
     List<CalculRentabilite>
-    findAllByTenantIdOrderByDateCalculDesc(UUID tenantId);
-    
+    findAllByTenantIdAndExploitationIdOrderByDateCalculDesc(UUID tenantId, UUID exploitationId);
+
     /**
-     * Find the top 4 most recent rentabilite calculations for a tenant.
-     * Used for dashboard performance optimization.
+     * Les 4 snapshots les plus récents de l'exploitation (optimisation du tableau de bord financier).
      */
     List<CalculRentabilite>
-    findTop4ByTenantIdOrderByDateCalculDesc(UUID tenantId);
+    findTop4ByTenantIdAndExploitationIdOrderByDateCalculDesc(UUID tenantId, UUID exploitationId);
 }

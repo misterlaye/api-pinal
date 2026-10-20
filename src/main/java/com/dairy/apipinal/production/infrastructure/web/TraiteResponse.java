@@ -11,7 +11,7 @@ public record TraiteResponse(
         UUID lactationId,
         OffsetDateTime dateHeure,
         String type,
-        BigDecimal quantiteKg,
+        BigDecimal quantiteLitres,
         OffsetDateTime dateHeureSaisie
 ) {
 
@@ -21,7 +21,7 @@ public record TraiteResponse(
                 traite.getLactationId(),
                 traite.getDateHeure(),
                 traite.getType().name(),
-                traite.getQuantiteKg(),
+                traite.getQuantiteLitres(),
                 traite.getDateHeureSaisie()
         );
     }

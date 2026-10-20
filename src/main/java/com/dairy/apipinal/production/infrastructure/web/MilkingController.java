@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/lactations/{lactationId}/milkings")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class MilkingController {
 
     private final RecordMilking recordMilking;
@@ -44,7 +45,7 @@ public class MilkingController {
                         tenantContext.currentUserId(),
                         request.dateHeure(),
                         request.type(),
-                        request.quantiteKg()
+                        request.quantiteLitres()
                 )
         );
 
@@ -59,6 +60,7 @@ public class MilkingController {
     ) {
         List<GetCourbeLactation.PointCourbe> courbe = getCourbeLactation.execute(
                 tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
                 lactationId
         );
         return ResponseEntity.ok(courbe);

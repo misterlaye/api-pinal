@@ -37,7 +37,7 @@ public class NutritionQueriesImpl implements NutritionQueries {
         UUID tenantId = tenantContext.currentTenantId();
 
         return rationRepository
-                .findByIdAndTenantId(rationId, tenantId)
+                .findByIdAndTenantIdAndExploitationId(rationId, tenantId, requireCurrentExploitationId())
                 .map(this::toReference)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
@@ -52,10 +52,11 @@ public class NutritionQueriesImpl implements NutritionQueries {
 
         UUID tenantId = tenantContext.currentTenantId();
 
-        return rationRepository.existsByIdAndTenantId(
+        return rationRepository.findByIdAndTenantIdAndExploitationId(
                 rationId,
-                tenantId
-        );
+                tenantId,
+                requireCurrentExploitationId()
+        ).isPresent();
     }
 
     @Override
@@ -203,7 +204,7 @@ public class NutritionQueriesImpl implements NutritionQueries {
         UUID tenantId = tenantContext.currentTenantId();
         UUID exploitationId = requireCurrentExploitationId();
 
-        BigDecimal coutTotal = rationService.calculateTotalCostOverPeriod(
+        RationService.CoutPeriode cout = rationService.calculateTotalCostOverPeriod(
                 tenantId,
                 exploitationId,
                 dateDebut,
@@ -214,7 +215,9 @@ public class NutritionQueriesImpl implements NutritionQueries {
                 new ExploitationFeedCostReference(
                         dateDebut,
                         dateFinExclusive,
-                        coutTotal
+                        cout.complet() ? cout.coutConnu() : null,
+                        cout.coutConnu(),
+                        cout.prixManquants()
                 )
         );
     }

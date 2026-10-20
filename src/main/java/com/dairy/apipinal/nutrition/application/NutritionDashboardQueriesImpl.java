@@ -2,17 +2,35 @@ package com.dairy.apipinal.nutrition.application;
 
 import com.dairy.apipinal.nutrition.api.NutritionDashboardQueries;
 import com.dairy.apipinal.nutrition.api.NutritionDashboardSummary;
+import com.dairy.apipinal.nutrition.api.NutritionDashboardSummary.AlimentSansPrix;
+import com.dairy.apipinal.nutrition.api.NutritionDashboardSummary.ConsommationAliment;
+import com.dairy.apipinal.nutrition.api.NutritionDashboardSummary.RationGroup;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
+/**
+ * Tableau de bord nutrition du jour : trois requêtes, indépendantes du nombre de rations
+ * (animaux actifs, lignes des rations effectives avec prix applicable, catalogue avec prix applicable).
+ */
 @Service
 @Transactional(readOnly = true)
 public class NutritionDashboardQueriesImpl implements NutritionDashboardQueries {
+
+    private static final int SCALE = 2;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -22,153 +40,147 @@ public class NutritionDashboardQueriesImpl implements NutritionDashboardQueries 
 
     @Override
     public NutritionDashboardSummary getDashboardSummary(UUID tenantId, UUID exploitationId) {
-        // 1. Total active animals in the exploitation/tenant
-        Long totalAnimals;
-        if (exploitationId != null) {
-            totalAnimals = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND statut = 'ACTIF'",
-                    Long.class, tenantId, exploitationId
-            );
-        } else {
-            totalAnimals = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM animal WHERE tenant_id = ? AND statut = 'ACTIF'",
-                    Long.class, tenantId
-            );
-        }
-        if (totalAnimals == null) totalAnimals = 0L;
+        LocalDate today = LocalDate.now();
 
-        // 2. Fetch active rations
-        String activeRationsSql = """
-            SELECT r.id as ration_id, r.animal_id, a.identifiant, a.nom as animal_nom
-            FROM ration r
-            JOIN animal a ON r.animal_id = a.id
-            WHERE r.tenant_id = ? AND r.statut = 'ACTIVE'
-            """ + (exploitationId != null ? " AND a.exploitation_id = ?" : "") + " ORDER BY a.identifiant ASC";
-
-        List<Map<String, Object>> activeRationRows = (exploitationId != null)
-                ? jdbcTemplate.queryForList(activeRationsSql, tenantId, exploitationId)
-                : jdbcTemplate.queryForList(activeRationsSql, tenantId);
-
-        double totalDailyCost = 0.0;
-        double totalDailyKg = 0.0;
-        List<NutritionDashboardSummary.RationGroup> rationGroups = new ArrayList<>();
-
-        for (Map<String, Object> rRow : activeRationRows) {
-            UUID rationId = (UUID) rRow.get("ration_id");
-            String animalIdentifiant = (String) rRow.get("identifiant");
-            String animalNom = (String) rRow.get("animal_nom");
-
-            // Query lines for this ration with current price
-            String linesSql = """
-                SELECT lr.quantite, al.nom as aliment_nom, al.unite,
-                       (SELECT p.prix_unitaire
-                        FROM prix_aliment p
-                        WHERE p.aliment_id = lr.aliment_id
-                          AND p.date_debut <= CURRENT_DATE
-                          AND (p.date_fin IS NULL OR p.date_fin >= CURRENT_DATE)
-                        ORDER BY p.date_debut DESC LIMIT 1) as prix_unitaire
-                FROM ligne_ration lr
-                JOIN aliment al ON lr.aliment_id = al.id
-                WHERE lr.ration_id = ?
-            """;
-
-            List<Map<String, Object>> lines = jdbcTemplate.queryForList(linesSql, rationId);
-            double rationCost = 0.0;
-            List<String> compParts = new ArrayList<>();
-
-            for (Map<String, Object> l : lines) {
-                BigDecimal qty = (BigDecimal) l.get("quantite");
-                String alimentNom = (String) l.get("aliment_nom");
-                String unite = (String) l.get("unite");
-                BigDecimal pu = (BigDecimal) l.get("prix_unitaire");
-
-                double q = (qty != null) ? qty.doubleValue() : 0.0;
-                totalDailyKg += q;
-
-                if (pu != null) {
-                    rationCost += q * pu.doubleValue();
-                }
-
-                compParts.add(alimentNom + " (" + q + " " + (unite != null ? unite.toLowerCase() : "") + ")");
-            }
-
-            totalDailyCost += rationCost;
-            String composition = compParts.isEmpty() ? "Aucun aliment renseigné" : String.join(", ", compParts);
-
-            rationGroups.add(new NutritionDashboardSummary.RationGroup(
-                    rationId,
-                    animalNom + " (" + animalIdentifiant + ")",
-                    composition,
-                    Math.round(rationCost * 100.0) / 100.0,
-                    1,
-                    "ACTIVE"
-            ));
-        }
-
-        int activeRationsCount = activeRationRows.size();
-        double averageRation = (activeRationsCount > 0) ? (totalDailyKg / activeRationsCount) : 0.0;
-
-        // 3. Aliments in catalogue count
-        Long alimentsCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM aliment WHERE actif = true", Long.class
+        Long totalAnimals = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM animal WHERE tenant_id = ? AND exploitation_id = ? AND statut = 'ACTIF'",
+                Long.class, tenantId, exploitationId
         );
-        if (alimentsCount == null) alimentsCount = 0L;
 
-        // 4. Stocks / Aliments consumption summary
-        String alimentConsoSql = """
-            SELECT al.id, al.nom, al.unite,
-                   COALESCE(SUM(CASE WHEN r.statut = 'ACTIVE' THEN lr.quantite ELSE 0 END), 0) as conso_jour,
-                   (SELECT p.prix_unitaire
-                    FROM prix_aliment p
-                    WHERE p.aliment_id = al.id
-                      AND p.date_debut <= CURRENT_DATE
-                      AND (p.date_fin IS NULL OR p.date_fin >= CURRENT_DATE)
-                    ORDER BY p.date_debut DESC LIMIT 1) as prix_unitaire
-            FROM aliment al
-            LEFT JOIN ligne_ration lr ON al.id = lr.aliment_id
-            LEFT JOIN ration r ON lr.ration_id = r.id AND r.tenant_id = ? AND r.statut = 'ACTIVE'
-            WHERE al.actif = true
-            GROUP BY al.id, al.nom, al.unite
-            ORDER BY conso_jour DESC, al.nom ASC
-        """;
+        // Lignes des rations ACTIVES effectives aujourd'hui, avec le prix de l'aliment applicable aujourd'hui.
+        List<Ligne> lignes = jdbcTemplate.query("""
+                SELECT r.id AS ration_id, a.nom AS animal_nom, a.identifiant,
+                       al.id AS aliment_id, al.nom AS aliment_nom, al.unite, lr.quantite,
+                       (SELECT p.prix_unitaire FROM prix_aliment p
+                         WHERE p.aliment_id = al.id
+                           AND p.date_debut <= ?
+                           AND (p.date_fin IS NULL OR p.date_fin >= ?)) AS prix_unitaire
+                FROM ration r
+                JOIN animal a ON a.id = r.animal_id
+                LEFT JOIN ligne_ration lr ON lr.ration_id = r.id
+                LEFT JOIN aliment al ON al.id = lr.aliment_id
+                WHERE r.tenant_id = ? AND r.exploitation_id = ? AND r.statut IN ('ACTIVE', 'TERMINEE')
+                  AND r.date_debut <= ? AND (r.date_fin IS NULL OR r.date_fin >= ?)
+                ORDER BY a.identifiant, al.nom
+                """, this::ligne, today, today, tenantId, exploitationId, today, today);
 
-        List<Map<String, Object>> stockRows = jdbcTemplate.queryForList(alimentConsoSql, tenantId);
-        List<NutritionDashboardSummary.Stock> stocks = new ArrayList<>();
+        Map<UUID, List<Ligne>> parRation = new LinkedHashMap<>();
+        for (Ligne ligne : lignes) {
+            parRation.computeIfAbsent(ligne.rationId(), k -> new ArrayList<>()).add(ligne);
+        }
 
-        for (Map<String, Object> s : stockRows) {
-            UUID alId = (UUID) s.get("id");
-            String alNom = (String) s.get("nom");
-            String alUnite = (String) s.get("unite");
-            BigDecimal conso = (BigDecimal) s.get("conso_jour");
-            BigDecimal pu = (BigDecimal) s.get("prix_unitaire");
+        BigDecimal coutConnu = BigDecimal.ZERO;
+        BigDecimal kgTotal = BigDecimal.ZERO;
+        Map<UUID, String> sansPrix = new LinkedHashMap<>();
+        Map<UUID, BigDecimal> consommationParAliment = new LinkedHashMap<>();
+        List<RationGroup> rationGroups = new ArrayList<>();
 
-            double dailyCons = (conso != null) ? conso.doubleValue() : 0.0;
-            String status = (pu != null) ? (pu.setScale(0, RoundingMode.HALF_UP) + " FCFA/" + (alUnite != null ? alUnite.toLowerCase() : "")) : "Prix à définir";
-
-            stocks.add(new NutritionDashboardSummary.Stock(
-                    alId,
-                    alNom,
-                    0.0,
-                    alUnite != null ? alUnite.toLowerCase() : "",
-                    status,
-                    dailyCons
+        for (List<Ligne> ration : parRation.values()) {
+            Ligne premiere = ration.getFirst();
+            BigDecimal coutRation = BigDecimal.ZERO;
+            Set<String> manquants = new LinkedHashSet<>();
+            List<String> composition = new ArrayList<>();
+            for (Ligne ligne : ration) {
+                if (ligne.alimentId() == null) {
+                    continue; // ration sans ligne
+                }
+                composition.add(ligne.alimentNom() + " (" + ligne.quantite().stripTrailingZeros().toPlainString()
+                        + " " + ligne.unite().toLowerCase() + ")");
+                consommationParAliment.merge(ligne.alimentId(), ligne.quantite(), BigDecimal::add);
+                if ("KG".equals(ligne.unite())) {
+                    kgTotal = kgTotal.add(ligne.quantite());
+                }
+                if (ligne.prixUnitaire() == null) {
+                    manquants.add(ligne.alimentNom());
+                    sansPrix.put(ligne.alimentId(), ligne.alimentNom());
+                } else {
+                    BigDecimal cout = ligne.quantite().multiply(ligne.prixUnitaire());
+                    coutRation = coutRation.add(cout);
+                    coutConnu = coutConnu.add(cout);
+                }
+            }
+            rationGroups.add(new RationGroup(
+                    premiere.rationId(),
+                    premiere.animalNom() + " (" + premiere.identifiant() + ")",
+                    composition.isEmpty() ? "Aucun aliment renseigné" : String.join(", ", composition),
+                    manquants.isEmpty() ? scale(coutRation) : null,
+                    List.copyOf(manquants)
             ));
         }
 
-        double coveragePct = (totalAnimals > 0) ? ((double) activeRationsCount / totalAnimals) * 100.0 : 0.0;
-        String coverageLabel = activeRationsCount + " / " + totalAnimals + " vaches couvertes";
+        // Catalogue de l'exploitation avec prix applicable aujourd'hui, et consommation prévue par les rations.
+        List<ConsommationAliment> consommations = jdbcTemplate.query("""
+                SELECT al.id, al.nom, al.unite,
+                       (SELECT p.prix_unitaire FROM prix_aliment p
+                         WHERE p.aliment_id = al.id
+                           AND p.date_debut <= ?
+                           AND (p.date_fin IS NULL OR p.date_fin >= ?)) AS prix_unitaire
+                FROM aliment al
+                WHERE al.actif = true AND al.tenant_id = ? AND al.exploitation_id = ?
+                ORDER BY al.nom
+                """, (rs, i) -> {
+            UUID id = rs.getObject("id", UUID.class);
+            return new ConsommationAliment(
+                    id,
+                    rs.getString("nom"),
+                    rs.getString("unite").toLowerCase(),
+                    scale(consommationParAliment.getOrDefault(id, BigDecimal.ZERO)),
+                    rs.getBigDecimal("prix_unitaire")
+            );
+        }, today, today, tenantId, exploitationId);
+        consommations = consommations.stream()
+                .sorted((a, b) -> b.consommationJournaliere().compareTo(a.consommationJournaliere()))
+                .toList();
+
+        long animaux = totalAnimals != null ? totalAnimals : 0L;
+        int nbRations = parRation.size();
+        boolean complet = sansPrix.isEmpty();
 
         NutritionDashboardSummary.Kpis kpis = new NutritionDashboardSummary.Kpis(
-                Math.round(totalDailyCost),
-                0.0,
-                Math.round(averageRation * 10.0) / 10.0,
-                "kg / vache sous ration",
-                alimentsCount.doubleValue(),
-                "Aliments au catalogue",
-                Math.round(coveragePct * 10.0) / 10.0,
-                coverageLabel
+                complet ? scale(coutConnu) : null,
+                scale(coutConnu),
+                complet,
+                nbRations > 0 ? kgTotal.divide(BigDecimal.valueOf(nbRations), 1, RoundingMode.HALF_UP) : null,
+                consommations.size(),
+                animaux > 0
+                        ? BigDecimal.valueOf(nbRations * 100L).divide(BigDecimal.valueOf(animaux), 1, RoundingMode.HALF_UP)
+                        : null,
+                nbRations + " / " + animaux + " animaux sous ration"
         );
 
-        return new NutritionDashboardSummary(kpis, rationGroups, stocks, Collections.emptyList());
+        return new NutritionDashboardSummary(
+                kpis,
+                rationGroups,
+                consommations,
+                sansPrix.entrySet().stream().map(e -> new AlimentSansPrix(e.getKey(), e.getValue())).toList()
+        );
     }
+
+    private Ligne ligne(ResultSet rs, int rowNum) throws SQLException {
+        return new Ligne(
+                rs.getObject("ration_id", UUID.class),
+                rs.getString("animal_nom"),
+                rs.getString("identifiant"),
+                rs.getObject("aliment_id", UUID.class),
+                rs.getString("aliment_nom"),
+                rs.getString("unite"),
+                rs.getBigDecimal("quantite"),
+                rs.getBigDecimal("prix_unitaire")
+        );
+    }
+
+    private static BigDecimal scale(BigDecimal value) {
+        return value == null ? null : value.setScale(SCALE, RoundingMode.HALF_UP);
+    }
+
+    private record Ligne(
+            UUID rationId,
+            String animalNom,
+            String identifiant,
+            UUID alimentId,
+            String alimentNom,
+            String unite,
+            BigDecimal quantite,
+            BigDecimal prixUnitaire
+    ) {}
 }
