@@ -23,11 +23,17 @@ public class ReproductionQueriesImpl implements ReproductionQueries {
     }
 
     @Override
-    public List<CycleReproductionResponse> getCyclesByAnimal(UUID animalId) {
-        return repository.findByAnimalIdOrderByNumeroCycleDesc(animalId)
+    public List<CycleReproductionResponse> getCyclesByAnimal(UUID animalId, UUID tenantId, UUID exploitationId) {
+        return repository.findByAnimalIdAndTenantIdAndExploitationIdOrderByNumeroCycleDesc(animalId, tenantId, exploitationId)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public java.util.Optional<CycleReproductionResponse> getCycle(UUID cycleId, UUID tenantId, UUID exploitationId) {
+        return repository.findByIdAndTenantIdAndExploitationId(cycleId, tenantId, exploitationId)
+                .map(this::mapToResponse);
     }
 
     private CycleReproductionResponse mapToResponse(CycleReproduction cycle) {

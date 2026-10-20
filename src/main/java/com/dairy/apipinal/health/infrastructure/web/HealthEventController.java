@@ -16,6 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/animals/{animalId}/health-events")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class HealthEventController {
 
     private final RecordHealthEvent recordHealthEvent;
@@ -38,7 +39,12 @@ public class HealthEventController {
         this.tenantContext = tenantContext;
     }
 
+    /**
+     * Signalement d'un événement sanitaire : ouvert aux ouvriers (alerte depuis le terrain).
+     * Consultation et modification restent réservées au propriétaire.
+     */
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("@authz.isWorkerOrOwner()")
     public ResponseEntity<HealthEventResponse> create(
             @PathVariable UUID animalId,
             @Valid @RequestBody RecordHealthEventRequest request
@@ -53,6 +59,9 @@ public class HealthEventController {
                                 null, // sourceCycleId
                                 request.dateHeure(),
                                 request.description(),
+                                request.diagnostic(),
+                                request.traitement(),
+                                request.dateFin(),
                                 tenantContext.currentUserId()
                         )
                 );
@@ -67,6 +76,7 @@ public class HealthEventController {
         return listAnimalHealthEvents
                 .execute(
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         animalId
                 )
                 .stream()
@@ -81,7 +91,7 @@ public class HealthEventController {
     ) {
 
         EvenementSanitaire event =
-                getHealthEvent.execute(tenantContext.currentTenantId(), eventId);
+                getHealthEvent.execute(tenantContext.currentTenantId(), tenantContext.currentExploitationId(), eventId);
 
         if (!event.getAnimalId().equals(animalId)) {
             throw new IllegalArgumentException("L'événement sanitaire n'appartient pas à cet animal.");
@@ -102,6 +112,7 @@ public class HealthEventController {
                         new UpdateHealthEvent.Command(
                                 eventId,
                                 tenantContext.currentTenantId(),
+                                tenantContext.currentExploitationId(),
                                 request.description(),
                                 request.diagnostic(),
                                 request.traitement(),

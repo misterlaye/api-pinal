@@ -20,7 +20,7 @@ public class ListAnimalHealthEvents {
         this.repository = repository;
     }
 
-    public List<EvenementSanitaire> execute(UUID tenantId,UUID animalId) {
-        return repository.findAllByAnimalIdAndTenantIdOrderByDateHeureDesc(animalId, tenantId);
+    public List<EvenementSanitaire> execute(UUID tenantId, UUID exploitationId, UUID animalId) {
+        return repository.findAllByAnimalIdAndTenantIdAndExploitationIdOrderByDateHeureDesc(animalId, tenantId, exploitationId);
     }
 }

@@ -5,12 +5,19 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Tableau de bord santé de l'exploitation courante.
+ * <p>
+ * Convention : un événement est une vaccination lorsque sa description commence par « Vaccination »
+ * (valeur saisie par le formulaire) ; sa date de fin porte alors la date de rappel. Les autres événements
+ * sans date de fin sont des signalements ouverts. Aucune sévérité n'est enregistrée : les signalements
+ * sont présentés comme « OUVERT », sans gravité inventée.
+ */
 public record HealthDashboardSummary(
         Kpis kpis,
         List<Alert> alerts,
         List<HistoryEvent> history,
-        List<Vaccination> vaccinations,
-        ThermalStress thermalStress
+        List<Vaccination> vaccinations
 ) {
     public record Kpis(
             int alertsCount,
@@ -19,7 +26,7 @@ public record HealthDashboardSummary(
             String vaccinationsSubtitle,
             String nextVisit,
             String nextVisitSubtitle,
-            int healthScore,
+            Integer healthScore,
             String healthScoreSubtitle
     ) {}
 
@@ -51,14 +58,5 @@ public record HealthDashboardSummary(
             String avatar,
             String date,
             boolean isUrgent
-    ) {}
-
-    public record ThermalStress(
-            int averageTemp,
-            String season,
-            String location,
-            String riskLevel,
-            int riskScore,
-            List<String> recommendations
     ) {}
 }

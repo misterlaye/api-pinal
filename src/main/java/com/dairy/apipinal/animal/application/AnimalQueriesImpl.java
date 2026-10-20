@@ -28,12 +28,18 @@ public class AnimalQueriesImpl implements AnimalQueries {
 
     @Override
     public AnimalReference getReference(UUID animalId) {
+        return getReference(
+                animalId,
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId()
+        );
+    }
+
+    @Override
+    public AnimalReference getReference(UUID animalId, UUID tenantId, UUID exploitationId) {
 
         Animal animal = animalRepository
-                .findByIdAndTenantId(
-                        animalId,
-                        tenantContext.currentTenantId()
-                )
+                .findByIdAndTenantIdAndExploitationId(animalId, tenantId, exploitationId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Animal introuvable."
                 ));
@@ -45,9 +51,10 @@ public class AnimalQueriesImpl implements AnimalQueries {
     public boolean exists(UUID animalId) {
 
         return animalRepository
-                .findByIdAndTenantId(
+                .findByIdAndTenantIdAndExploitationId(
                         animalId,
-                        tenantContext.currentTenantId()
+                        tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId()
                 )
                 .isPresent();
     }
@@ -55,9 +62,10 @@ public class AnimalQueriesImpl implements AnimalQueries {
     @Override
     public boolean isActive(UUID animalId) {
 
-        return animalRepository.existsByIdAndTenantIdAndStatut(
+        return animalRepository.existsByIdAndTenantIdAndExploitationIdAndStatut(
                 animalId,
                 tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
                 StatutAnimal.ACTIF
         );
     }

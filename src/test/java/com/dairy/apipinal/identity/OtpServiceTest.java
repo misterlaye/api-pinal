@@ -97,7 +97,7 @@ class OtpServiceTest {
         when(otpCodeRepository.findFirstByTelephoneAndUsedFalseOrderByCreatedAtDesc(telephone))
                 .thenReturn(Optional.of(otpCode));
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(com.dairy.apipinal.identity.application.AuthenticationFailedException.class,
                 () -> otpService.verify(telephone, "123456"));
     }
 
@@ -114,7 +114,7 @@ class OtpServiceTest {
         when(otpCodeRepository.findFirstByTelephoneAndUsedFalseOrderByCreatedAtDesc(telephone))
                 .thenReturn(Optional.of(otpCode));
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(com.dairy.apipinal.identity.application.TooManyAttemptsException.class,
                 () -> otpService.verify(telephone, "123456"));
     }
 
@@ -123,7 +123,7 @@ class OtpServiceTest {
         when(otpCodeRepository.findFirstByTelephoneAndUsedFalseOrderByCreatedAtDesc("+221770001122"))
                 .thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(com.dairy.apipinal.identity.application.AuthenticationFailedException.class,
                 () -> otpService.verify("+221770001122", "123456"));
     }
 

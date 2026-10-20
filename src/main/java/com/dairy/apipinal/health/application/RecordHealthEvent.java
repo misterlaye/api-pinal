@@ -33,7 +33,7 @@ public class RecordHealthEvent {
     public EvenementSanitaire execute(Command command) {
 
         AnimalReference animal =
-                animalQueries.getReference(command.animalId());
+                animalQueries.getReference(command.animalId(), command.tenantId(), command.exploitationId());
 
         if (!"ACTIF".equals(animal.statut())) {
             throw new IllegalStateException(
@@ -58,6 +58,17 @@ public class RecordHealthEvent {
                 command.actorId()
         );
 
+        if (command.diagnostic() != null || command.traitement() != null || command.dateFin() != null) {
+            // Informations complémentaires enregistrées dans la même transaction que la création.
+            event.update(
+                    command.description(),
+                    command.diagnostic(),
+                    command.traitement(),
+                    command.dateFin(),
+                    command.actorId()
+            );
+        }
+
         EvenementSanitaire saved = repository.save(event);
 
         eventPublisher.publishEvent(
@@ -80,7 +91,21 @@ public class RecordHealthEvent {
             UUID sourceCycleId,
             OffsetDateTime dateHeure,
             String description,
+            String diagnostic,
+            String traitement,
+            java.time.LocalDate dateFin,
             UUID actorId
     ) {
+        public Command(
+                UUID tenantId,
+                UUID exploitationId,
+                UUID animalId,
+                UUID sourceCycleId,
+                OffsetDateTime dateHeure,
+                String description,
+                UUID actorId
+        ) {
+            this(tenantId, exploitationId, animalId, sourceCycleId, dateHeure, description, null, null, null, actorId);
+        }
     }
 }

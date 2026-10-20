@@ -27,7 +27,7 @@ public class UpdateAnimal {
     public Animal execute(Command command) {
 
         Animal animal = animalRepository
-                .findByIdAndTenantId(command.animalId(), command.tenantId())
+                .findByIdAndTenantIdAndExploitationId(command.animalId(), command.tenantId(), command.exploitationId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Animal introuvable."
                 ));
@@ -50,6 +50,18 @@ public class UpdateAnimal {
             );
         }
 
+        if (command.mereId() != null) {
+            if (command.mereId().equals(animal.getId())) {
+                throw new IllegalArgumentException("Un animal ne peut pas être sa propre mère.");
+            }
+            Animal mere = animalRepository
+                    .findByIdAndTenantIdAndExploitationId(command.mereId(), command.tenantId(), command.exploitationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Mère introuvable dans cette exploitation."));
+            if (mere.getSexe() == com.dairy.apipinal.animal.domain.SexeAnimal.MALE) {
+                throw new IllegalArgumentException("La mère déclarée est un mâle.");
+            }
+        }
+
         animal.update(
                 command.raceId(),
                 command.identifiant(),
@@ -68,6 +80,7 @@ public class UpdateAnimal {
     public record Command(
             UUID animalId,
             UUID tenantId,
+            UUID exploitationId,
             UUID raceId,
             String identifiant,
             String nom,

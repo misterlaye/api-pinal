@@ -1,11 +1,12 @@
 package com.dairy.apipinal.identity.infrastructure.security;
 
-import com.dairy.apipinal.identity.api.ExploitationInfo;
+import com.dairy.apipinal.identity.api.ExploitationAccess;
 import com.dairy.apipinal.identity.api.IdentityQueries;
+import com.dairy.apipinal.shared.security.AuthenticationMethod;
 import com.dairy.apipinal.shared.security.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Résout le périmètre de la requête à partir du JWT (utilisateur, moyen d'authentification)
+ * et du header {@code X-Exploitation-ID}, en vérifiant l'adhésion en base.
+ * <p>
+ * Une session ouverte par PIN n'accède qu'aux exploitations où l'utilisateur est ouvrier
+ * (EMPLOYE, GERANT). Un refus est signalé par {@link AccessDeniedException} (HTTP 403).
+ */
 @Component
 @Primary
 public class JwtTenantContext implements TenantContext {
@@ -39,18 +47,27 @@ public class JwtTenantContext implements TenantContext {
     }
 
     @Override
+    public AuthenticationMethod currentAuthenticationMethod() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getDetails() instanceof AuthenticationMethod method) {
+            return method;
+        }
+        return AuthenticationMethod.OTP;
+    }
+
+    @Override
     public UUID currentTenantId() {
-        return getExploitationInfo().tenantId();
+        return getExploitationAccess().tenantId();
     }
 
     @Override
     public UUID currentExploitationId() {
-        return getExploitationInfo().exploitationId();
+        return getExploitationAccess().exploitationId();
     }
 
     @Override
     public String currentRole() {
-        return getExploitationInfo().role().name();
+        return getExploitationAccess().role().name();
     }
 
     /**
@@ -58,33 +75,33 @@ public class JwtTenantContext implements TenantContext {
      * demandée) : un même traitement interroge le contexte des dizaines de fois. Seule une
      * résolution réussie est mémorisée ; hors requête HTTP (tâches asynchrones), aucune mémorisation.
      */
-    private ExploitationInfo getExploitationInfo() {
+    private ExploitationAccess getExploitationAccess() {
         UUID userId = currentUserId();
+        boolean workerRolesOnly = currentAuthenticationMethod() == AuthenticationMethod.PIN;
         Optional<UUID> requestedExploitationId = getRequestedExploitationIdFromHeader();
 
         RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
-        String cacheKey = RESOLVED_ATTRIBUTE_PREFIX + userId + ":"
+        String cacheKey = RESOLVED_ATTRIBUTE_PREFIX + userId + ":" + workerRolesOnly + ":"
                 + requestedExploitationId.map(UUID::toString).orElse("");
         if (attributes != null
-                && attributes.getAttribute(cacheKey, RequestAttributes.SCOPE_REQUEST) instanceof ExploitationInfo cached) {
+                && attributes.getAttribute(cacheKey, RequestAttributes.SCOPE_REQUEST) instanceof ExploitationAccess cached) {
             return cached;
         }
 
-        ExploitationInfo info = identityQueries.getActiveExploitationForUser(userId, requestedExploitationId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "L'utilisateur " + userId + " n'a accès à aucune exploitation active."
-                ));
+        ExploitationAccess access = identityQueries
+                .resolveAccess(userId, requestedExploitationId, workerRolesOnly)
+                .orElseThrow(() -> new AccessDeniedException(requestedExploitationId.isPresent()
+                        ? "Accès refusé à cette exploitation."
+                        : "Aucune exploitation sélectionnée. Choisissez une exploitation."));
 
         if (attributes != null) {
-            attributes.setAttribute(cacheKey, info, RequestAttributes.SCOPE_REQUEST);
+            attributes.setAttribute(cacheKey, access, RequestAttributes.SCOPE_REQUEST);
         }
-        return info;
+        return access;
     }
 
     private Optional<UUID> getRequestedExploitationIdFromHeader() {
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
             return Optional.empty();
         }
         HttpServletRequest request = attributes.getRequest();

@@ -1,5 +1,6 @@
 package com.dairy.apipinal.identity.domain;
 
+import com.dairy.apipinal.shared.security.AuthenticationMethod;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
@@ -24,17 +25,22 @@ public class RefreshToken {
     @Column(nullable = false)
     private boolean revoked;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_method", nullable = false, length = 10)
+    private AuthenticationMethod authMethod;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
     protected RefreshToken() {
     }
 
-    public RefreshToken(String tokenHash, UUID userId, OffsetDateTime expiresAt) {
+    public RefreshToken(String tokenHash, UUID userId, OffsetDateTime expiresAt, AuthenticationMethod authMethod) {
         this.id = UUID.randomUUID();
         this.tokenHash = tokenHash;
         this.userId = userId;
         this.expiresAt = expiresAt;
+        this.authMethod = authMethod;
         this.revoked = false;
         this.createdAt = OffsetDateTime.now();
     }
@@ -53,6 +59,10 @@ public class RefreshToken {
 
     public OffsetDateTime getExpiresAt() {
         return expiresAt;
+    }
+
+    public AuthenticationMethod getAuthMethod() {
+        return authMethod;
     }
 
     public boolean isRevoked() {

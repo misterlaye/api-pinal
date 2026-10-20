@@ -30,9 +30,10 @@ public class HealthQueriesImpl implements HealthQueries {
     public HealthEventReference getReference(UUID healthEventId) {
 
         return repository
-                .findByIdAndTenantId(
+                .findByIdAndTenantIdAndExploitationId(
                         healthEventId,
-                        tenantContext.currentTenantId()
+                        tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId()
                 )
                 .map(this::toReference)
                 .orElseThrow(() -> new IllegalArgumentException(

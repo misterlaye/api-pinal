@@ -35,7 +35,8 @@ public class DeclarerInsemination {
     public CycleReproduction execute(Command command) {
 
         if (animalQueries != null) {
-            AnimalReference animal = animalQueries.getReference(command.animalId());
+            AnimalReference animal = animalQueries.getReference(
+                    command.animalId(), command.tenantId(), command.exploitationId());
             if (!"ACTIF".equals(animal.statut())) {
                 throw new IllegalStateException("Un animal non actif ne peut pas être inséminé.");
             }
@@ -48,7 +49,8 @@ public class DeclarerInsemination {
         }
 
 
-        List<CycleReproduction> cycles = repository.findByAnimalIdOrderByNumeroCycleDesc(command.animalId());
+        List<CycleReproduction> cycles = repository.findByAnimalIdAndTenantIdAndExploitationIdOrderByNumeroCycleDesc(
+                command.animalId(), command.tenantId(), command.exploitationId());
 
         if (!cycles.isEmpty()) {
             CycleReproduction dernierCycle = cycles.get(0);

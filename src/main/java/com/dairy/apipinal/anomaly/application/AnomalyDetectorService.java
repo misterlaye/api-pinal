@@ -37,8 +37,8 @@ public class AnomalyDetectorService implements AnomalyQueries {
         OffsetDateTime todayStart = now.minusDays(1);
         OffsetDateTime lastWeekStart = now.minusDays(7);
 
-        BigDecimal todayProd = productionQueries.getTotalMilkProductionKg(todayStart, now);
-        BigDecimal lastWeekProd = productionQueries.getTotalMilkProductionKg(lastWeekStart, todayStart);
+        BigDecimal todayProd = productionQueries.getTotalMilkProductionLitres(todayStart, now);
+        BigDecimal lastWeekProd = productionQueries.getTotalMilkProductionLitres(lastWeekStart, todayStart);
 
         BigDecimal avgDailyLastWeek = lastWeekProd.divide(new BigDecimal("6"), 2, RoundingMode.HALF_UP);
 
@@ -48,7 +48,7 @@ public class AnomalyDetectorService implements AnomalyQueries {
                     "DROP_MILK_PRODUCTION",
                     "AVERTISSEMENT",
                     "Chute globale de production laitière",
-                    "La production laitière des dernières 24h (" + todayProd + " kg) est inférieure de plus de 20% à la moyenne quotidienne de la semaine (" + avgDailyLastWeek + " kg).",
+                    "La production laitière des dernières 24h (" + todayProd + " L) est inférieure de plus de 20% à la moyenne quotidienne de la semaine (" + avgDailyLastWeek + " L).",
                     null,
                     now
             ));

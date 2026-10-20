@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/health")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class HealthDashboardController {
 
     private final HealthDashboardQueries healthDashboardQueries;

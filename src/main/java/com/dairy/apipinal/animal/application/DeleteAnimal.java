@@ -18,7 +18,7 @@ public class DeleteAnimal {
 
     @Transactional
     public void execute(Command command) {
-        animalRepository.findByIdAndTenantId(command.animalId(), command.tenantId())
+        animalRepository.findByIdAndTenantIdAndExploitationId(command.animalId(), command.tenantId(), command.exploitationId())
                 .ifPresentOrElse(
                         animal -> {
                             try {
@@ -40,6 +40,7 @@ public class DeleteAnimal {
     public record Command(
             UUID animalId,
             UUID tenantId,
+            UUID exploitationId,
             UUID actorId
     ) {
     }

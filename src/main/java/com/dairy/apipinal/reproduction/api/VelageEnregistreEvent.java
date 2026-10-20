@@ -12,7 +12,8 @@ public record VelageEnregistreEvent(
         LocalDate dateVelage,
         List<VeauPayload> veaux,
         UUID taureauId,
-        String codePaillette
+        String codePaillette,
+        UUID actorId
 ) {
     public record VeauPayload(
             String identifiant,

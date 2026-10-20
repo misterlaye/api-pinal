@@ -19,9 +19,9 @@ public class GetHealthEvent {
         this.repository = repository;
     }
 
-    public EvenementSanitaire execute(UUID tenantId, UUID eventId) {
+    public EvenementSanitaire execute(UUID tenantId, UUID exploitationId, UUID eventId) {
         return repository
-                .findByIdAndTenantId(eventId, tenantId)
+                .findByIdAndTenantIdAndExploitationId(eventId, tenantId, exploitationId)
                 .orElseThrow(() -> new IllegalArgumentException("Événement sanitaire introuvable."));
     }
 }

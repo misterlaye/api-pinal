@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public record CreateAnimalRequest(
 
-        @NotNull
+        /** Facultatif : s'il est fourni, il doit correspondre à l'exploitation active. */
         UUID exploitationId,
 
         @NotNull

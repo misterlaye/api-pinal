@@ -10,6 +10,7 @@ import com.dairy.apipinal.reproduction.application.EnregistrerConstatGestation;
 import com.dairy.apipinal.reproduction.application.DeclarerAvortement;
 import com.dairy.apipinal.reproduction.domain.CycleReproduction;
 import com.dairy.apipinal.reproduction.domain.MethodeReproduction;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/reproduction")
-@PreAuthorize("@authz.isWorkerOrOwner()")
+@PreAuthorize("@authz.isOwner()")
 public class ReproductionController {
 
     private final DeclarerInsemination declarerInsemination;
@@ -47,92 +48,96 @@ public class ReproductionController {
 
     @PostMapping("/inseminations")
     @ResponseStatus(HttpStatus.CREATED)
-    public CycleReproductionResponse declarerInsemination(@RequestBody InseminationRequest request) {
+    public CycleReproductionResponse declarerInsemination(@Valid @RequestBody InseminationRequest request) {
         UUID tenantId = tenantContext.currentTenantId();
-        UUID userId = tenantContext.currentUserId();
+        UUID exploitationId = tenantContext.requireExploitation(request.exploitationId());
 
         CycleReproduction cycle = declarerInsemination.execute(new DeclarerInsemination.Command(
                 request.animalId(),
                 tenantId,
-                request.exploitationId(),
+                exploitationId,
                 request.dateInsemination(),
-                MethodeReproduction.valueOf(request.methodeReproduction()),
+                parseMethode(request.methodeReproduction()),
                 request.taureauId(),
                 request.codePaillette(),
-                userId
+                tenantContext.currentUserId()
         ));
 
-        // Let's refetch it via queries to get the properly mapped DTO
-        return reproductionQueries.getCyclesByAnimal(request.animalId())
-                .stream()
-                .filter(c -> c.id().equals(cycle.getId()))
-                .findFirst()
-                .orElseThrow();
+        return toResponse(cycle);
     }
 
     @PostMapping("/cycles/{id}/constat")
     public CycleReproductionResponse enregistrerConstat(
             @PathVariable UUID id,
-            @RequestBody ConstatGestationRequest request
+            @Valid @RequestBody ConstatGestationRequest request
     ) {
-        UUID userId = tenantContext.currentUserId();
-
         CycleReproduction cycle = enregistrerConstatGestation.execute(new EnregistrerConstatGestation.Command(
                 id,
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
                 request.dateConstat(),
                 request.resultat(),
                 request.veterinaire(),
-                userId
+                tenantContext.currentUserId()
         ));
 
-        return reproductionQueries.getCyclesByAnimal(cycle.getAnimalId())
-                .stream()
-                .filter(c -> c.id().equals(cycle.getId()))
-                .findFirst()
-                .orElseThrow();
+        return toResponse(cycle);
     }
 
     @PostMapping("/cycles/{id}/velage")
     public CycleReproductionResponse declarerVelage(
             @PathVariable UUID id,
-            @RequestBody VelageRequest request
+            @Valid @RequestBody VelageRequest request
     ) {
-        UUID userId = tenantContext.currentUserId();
-
         CycleReproduction cycle = declarerVelage.execute(new DeclarerVelage.Command(
                 id,
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
                 request.dateReelle(),
-                request.veaux() != null ? request.veaux().stream().map(v -> new VelageEnregistreEvent.VeauPayload(v.identifiant(), v.nom(), v.sexe(), v.indexPortee())).toList() : java.util.Collections.emptyList(),
-                userId
+                request.veaux() != null
+                        ? request.veaux().stream()
+                                .map(v -> new VelageEnregistreEvent.VeauPayload(v.identifiant(), v.nom(), v.sexe(), v.indexPortee()))
+                                .toList()
+                        : java.util.Collections.emptyList(),
+                tenantContext.currentUserId()
         ));
 
-        return reproductionQueries.getCyclesByAnimal(cycle.getAnimalId())
-                .stream()
-                .filter(c -> c.id().equals(cycle.getId()))
-                .findFirst()
-                .orElseThrow();
+        return toResponse(cycle);
     }
 
     @PostMapping("/cycles/{id}/avortement")
     public CycleReproductionResponse declarerAvortement(
             @PathVariable UUID id
     ) {
-        UUID userId = tenantContext.currentUserId();
-
         CycleReproduction cycle = declarerAvortement.execute(new DeclarerAvortement.Command(
                 id,
-                userId
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId(),
+                tenantContext.currentUserId()
         ));
 
-        return reproductionQueries.getCyclesByAnimal(cycle.getAnimalId())
-                .stream()
-                .filter(c -> c.id().equals(cycle.getId()))
-                .findFirst()
-                .orElseThrow();
+        return toResponse(cycle);
     }
 
     @GetMapping("/animaux/{animalId}/cycles")
     public List<CycleReproductionResponse> getCycles(@PathVariable UUID animalId) {
-        return reproductionQueries.getCyclesByAnimal(animalId);
+        return reproductionQueries.getCyclesByAnimal(
+                animalId,
+                tenantContext.currentTenantId(),
+                tenantContext.currentExploitationId()
+        );
+    }
+
+    private CycleReproductionResponse toResponse(CycleReproduction cycle) {
+        return reproductionQueries.getCycle(cycle.getId(), cycle.getTenantId(), cycle.getExploitationId())
+                .orElseThrow(() -> new IllegalStateException("Cycle de reproduction introuvable après enregistrement."));
+    }
+
+    private static MethodeReproduction parseMethode(String methode) {
+        try {
+            return MethodeReproduction.valueOf(methode);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new IllegalArgumentException("Méthode de reproduction inconnue : " + methode);
+        }
     }
 }

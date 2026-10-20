@@ -23,7 +23,7 @@ public class UpdateHealthEvent {
     public EvenementSanitaire execute(Command command) {
 
         EvenementSanitaire event = repository
-                .findByIdAndTenantId(command.eventId(), command.tenantId())
+                .findByIdAndTenantIdAndExploitationId(command.eventId(), command.tenantId(), command.exploitationId())
                 .orElseThrow(() -> new IllegalArgumentException("Événement sanitaire introuvable."));
 
         event.update(
@@ -40,6 +40,7 @@ public class UpdateHealthEvent {
     public record Command(
             UUID eventId,
             UUID tenantId,
+            UUID exploitationId,
             String description,
             String diagnostic,
             String traitement,

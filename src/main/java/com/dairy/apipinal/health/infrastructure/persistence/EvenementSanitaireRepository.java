@@ -10,16 +10,12 @@ import java.util.UUID;
 public interface EvenementSanitaireRepository
         extends JpaRepository<EvenementSanitaire, UUID> {
 
-    Optional<EvenementSanitaire> findByIdAndTenantId(
+    Optional<EvenementSanitaire> findByIdAndTenantIdAndExploitationId(
             UUID id,
-            UUID tenantId
+            UUID tenantId,
+            UUID exploitationId
     );
 
-    List<EvenementSanitaire>
-    findAllByAnimalIdAndTenantIdOrderByDateHeureDesc(
-            UUID animalId,
-            UUID tenantId
-    );
 
     List<EvenementSanitaire>
     findAllByAnimalIdAndTenantIdAndExploitationIdOrderByDateHeureDesc(

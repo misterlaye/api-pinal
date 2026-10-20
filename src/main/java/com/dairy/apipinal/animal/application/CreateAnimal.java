@@ -49,6 +49,8 @@ public class CreateAnimal {
             );
         }
 
+        verifierMere(command.mereId(), command.tenantId(), command.exploitationId(), null);
+
         Animal animal = new Animal(
                 command.tenantId(),
                 command.exploitationId(),
@@ -75,6 +77,20 @@ public class CreateAnimal {
         );
 
         return saved;
+    }
+
+    private void verifierMere(UUID mereId, UUID tenantId, UUID exploitationId, UUID animalId) {
+        if (mereId == null) {
+            return;
+        }
+        if (mereId.equals(animalId)) {
+            throw new IllegalArgumentException("Un animal ne peut pas être sa propre mère.");
+        }
+        Animal mere = animalRepository.findByIdAndTenantIdAndExploitationId(mereId, tenantId, exploitationId)
+                .orElseThrow(() -> new IllegalArgumentException("Mère introuvable dans cette exploitation."));
+        if (mere.getSexe() == com.dairy.apipinal.animal.domain.SexeAnimal.MALE) {
+            throw new IllegalArgumentException("La mère déclarée est un mâle.");
+        }
     }
 
     public record Command(

@@ -4,19 +4,17 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.UUID;
 
 /**
  * Filtre HTTP qui intercepte le header Authorization: Bearer <token>,
  * valide le JWT via TokenValidator et place l'authentification dans le SecurityContext.
+ * Le moyen d'authentification (OTP ou PIN) est conservé dans les détails de l'authentification.
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -28,6 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(TokenValidator tokenValidator) {
         this.tokenValidator = tokenValidator;
     }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -38,14 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (token != null) {
-            UUID userId = tokenValidator.validateTokenAndGetUserId(token);
-            if (userId != null) {
+            tokenValidator.validate(token).ifPresent(validated -> {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userId, null, Collections.emptyList()
+                                validated.userId(), null, Collections.emptyList()
                         );
+                authentication.setDetails(validated.method());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            });
         }
 
         filterChain.doFilter(request, response);

@@ -1,5 +1,6 @@
 package com.dairy.apipinal.identity.infrastructure.security;
 
+import com.dairy.apipinal.shared.security.AuthenticationMethod;
 import com.dairy.apipinal.shared.security.TokenValidator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -11,14 +12,18 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Génère et valide les JSON Web Tokens (access tokens) pour l'authentification.
  * Implémente TokenValidator pour permettre la validation depuis le module shared.
+ * Le claim {@code amr} porte le moyen d'authentification (OTP ou PIN).
  */
 @Component
 public class JwtTokenProvider implements TokenValidator {
+
+    static final String AUTH_METHOD_CLAIM = "amr";
 
     private final SecretKey secretKey;
     private final long accessTokenExpirationSeconds;
@@ -35,14 +40,22 @@ public class JwtTokenProvider implements TokenValidator {
     }
 
     /**
-     * Génère un access token JWT pour un utilisateur.
+     * Génère un access token JWT pour un utilisateur authentifié par OTP.
      */
     public String generateAccessToken(UUID userId) {
+        return generateAccessToken(userId, AuthenticationMethod.OTP);
+    }
+
+    /**
+     * Génère un access token JWT en précisant le moyen d'authentification.
+     */
+    public String generateAccessToken(UUID userId, AuthenticationMethod method) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpirationSeconds * 1000);
 
         return Jwts.builder()
                 .subject(userId.toString())
+                .claim(AUTH_METHOD_CLAIM, method.name())
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
@@ -57,11 +70,11 @@ public class JwtTokenProvider implements TokenValidator {
     }
 
     /**
-     * Valide un access token et retourne le userId (subject).
-     * @return le UUID du userId, ou null si le token est invalide.
+     * Valide un access token et retourne l'utilisateur et le moyen d'authentification.
+     * Un jeton sans claim {@code amr} est traité comme une session PIN (la plus restreinte).
      */
     @Override
-    public UUID validateTokenAndGetUserId(String token) {
+    public Optional<ValidatedToken> validate(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
@@ -69,9 +82,14 @@ public class JwtTokenProvider implements TokenValidator {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            return UUID.fromString(claims.getSubject());
+            UUID userId = UUID.fromString(claims.getSubject());
+            String method = claims.get(AUTH_METHOD_CLAIM, String.class);
+            AuthenticationMethod authenticationMethod = AuthenticationMethod.OTP.name().equals(method)
+                    ? AuthenticationMethod.OTP
+                    : AuthenticationMethod.PIN;
+            return Optional.of(new ValidatedToken(userId, authenticationMethod));
         } catch (JwtException | IllegalArgumentException e) {
-            return null;
+            return Optional.empty();
         }
     }
 

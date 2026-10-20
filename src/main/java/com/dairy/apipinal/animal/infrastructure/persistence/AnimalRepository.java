@@ -26,14 +26,25 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID> {
             UUID tenantId
     );
 
+    /**
+     * Chargement d'un animal limité à l'exploitation courante : à utiliser pour toute
+     * lecture ou écriture déclenchée par un utilisateur.
+     */
+    Optional<Animal> findByIdAndTenantIdAndExploitationId(
+            UUID id,
+            UUID tenantId,
+            UUID exploitationId
+    );
+
     List<Animal> findAllByTenantIdAndExploitationIdOrderByIdentifiantAsc(
             UUID tenantId,
             UUID exploitationId
     );
 
-    boolean existsByIdAndTenantIdAndStatut(
+    boolean existsByIdAndTenantIdAndExploitationIdAndStatut(
             UUID id,
             UUID tenantId,
+            UUID exploitationId,
             StatutAnimal statut
     );
 

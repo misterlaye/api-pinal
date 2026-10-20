@@ -179,6 +179,13 @@ public class Animal {
             return;
         }
 
+        // Cycle de vie : un animal actif peut sortir du troupeau (vente, décès) ; une sortie est définitive.
+        if (this.statut != StatutAnimal.ACTIF || newStatus == StatutAnimal.ACTIF) {
+            throw new IllegalStateException(
+                    "Un animal sorti du troupeau (" + this.statut + ") ne peut pas changer de statut."
+            );
+        }
+
         this.statut = newStatus;
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = actorId;

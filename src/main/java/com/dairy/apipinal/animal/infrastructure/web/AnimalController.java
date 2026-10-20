@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/animals")
-@org.springframework.security.access.prepost.PreAuthorize("@authz.isWorkerOrOwner()")
+@org.springframework.security.access.prepost.PreAuthorize("@authz.isOwner()")
 public class AnimalController {
 
     private final CreateAnimal createAnimal;
@@ -57,7 +57,7 @@ public class AnimalController {
         Animal animal = createAnimal.execute(
                 new CreateAnimal.Command(
                         tenantContext.currentTenantId(),
-                        request.exploitationId(),
+                        tenantContext.requireExploitation(request.exploitationId()),
                         request.raceId(),
                         request.identifiant(),
                         request.nom(),
@@ -79,9 +79,10 @@ public class AnimalController {
     public AnimalResponse get(@PathVariable UUID animalId) {
 
         return animalRepository
-                .findByIdAndTenantId(
+                .findByIdAndTenantIdAndExploitationId(
                         animalId,
-                        tenantContext.currentTenantId()
+                        tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId()
                 )
                 .map(AnimalResponse::from)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -90,11 +91,11 @@ public class AnimalController {
     }
 
     @GetMapping
-    public List<AnimalResponse> listByExploitation(@RequestParam UUID exploitationId) {
+    public List<AnimalResponse> listByExploitation(@RequestParam(required = false) UUID exploitationId) {
         return animalRepository
                 .findAllByTenantIdAndExploitationIdOrderByIdentifiantAsc(
                         tenantContext.currentTenantId(),
-                        exploitationId
+                        tenantContext.requireExploitation(exploitationId)
                 )
                 .stream()
                 .map(AnimalResponse::from)
@@ -111,6 +112,7 @@ public class AnimalController {
                 new UpdateAnimal.Command(
                         animalId,
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         request.raceId(),
                         request.identifiant(),
                         request.nom(),
@@ -136,6 +138,7 @@ public class AnimalController {
                 new ChangeAnimalStatus.Command(
                         animalId,
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         status,
                         tenantContext.currentUserId()
                 )
@@ -147,13 +150,12 @@ public class AnimalController {
     @PostMapping("/{id}/sortie")
     public ResponseEntity<Void> declarerSortie(
             @PathVariable UUID id,
-            @RequestBody MouvementSortieRequest request
+            @Valid @RequestBody MouvementSortieRequest request
     ) {
-        Animal animal = animalRepository.findById(id).orElseThrow();
         declarerMouvementSortie.execute(new DeclarerMouvementSortie.Command(
                 id,
                 tenantContext.currentTenantId(),
-                animal.getExploitationId(),
+                tenantContext.currentExploitationId(),
                 request.dateSortie(),
                 request.motif(),
                 request.prixVente(),
@@ -168,6 +170,7 @@ public class AnimalController {
                 new DeleteAnimal.Command(
                         animalId,
                         tenantContext.currentTenantId(),
+                        tenantContext.currentExploitationId(),
                         tenantContext.currentUserId()
                 )
         );

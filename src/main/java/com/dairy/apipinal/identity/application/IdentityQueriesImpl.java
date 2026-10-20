@@ -1,9 +1,11 @@
 package com.dairy.apipinal.identity.application;
 
+import com.dairy.apipinal.identity.api.ExploitationAccess;
 import com.dairy.apipinal.identity.api.ExploitationInfo;
 import com.dairy.apipinal.identity.api.IdentityQueries;
 import com.dairy.apipinal.identity.domain.Exploitation;
 import com.dairy.apipinal.identity.domain.Membership;
+import com.dairy.apipinal.identity.domain.RoleExploitation;
 import com.dairy.apipinal.identity.infrastructure.persistence.ExploitationRepository;
 import com.dairy.apipinal.identity.infrastructure.persistence.MembershipRepository;
 import org.springframework.stereotype.Service;
@@ -99,5 +101,37 @@ public class IdentityQueriesImpl implements IdentityQueries {
         }
 
         return getUserExploitations(utilisateurId).stream().findFirst();
+    }
+
+    @Override
+    public Optional<ExploitationAccess> resolveAccess(
+            UUID utilisateurId,
+            Optional<UUID> requestedExploitationId,
+            boolean workerRolesOnly
+    ) {
+        if (requestedExploitationId.isPresent()) {
+            UUID expId = requestedExploitationId.get();
+            return membershipRepository
+                    .findByUtilisateurIdAndExploitationId(utilisateurId, expId)
+                    .filter(membership -> !workerRolesOnly || isWorkerRole(membership.getRole()))
+                    .flatMap(membership -> exploitationRepository.findById(expId)
+                            .filter(Exploitation::isActif)
+                            .map(exp -> new ExploitationAccess(exp.getId(), exp.getTenantId(), membership.getRole())));
+        }
+
+        List<ExploitationAccess> eligible = membershipRepository.findByUtilisateurId(utilisateurId).stream()
+                .filter(membership -> !workerRolesOnly || isWorkerRole(membership.getRole()))
+                .map(membership -> exploitationRepository.findById(membership.getExploitationId())
+                        .filter(Exploitation::isActif)
+                        .map(exp -> new ExploitationAccess(exp.getId(), exp.getTenantId(), membership.getRole())))
+                .flatMap(Optional::stream)
+                .toList();
+
+        // Sans exploitation explicite, on ne choisit jamais arbitrairement parmi plusieurs exploitations.
+        return eligible.size() == 1 ? Optional.of(eligible.getFirst()) : Optional.empty();
+    }
+
+    private static boolean isWorkerRole(RoleExploitation role) {
+        return role == RoleExploitation.EMPLOYE || role == RoleExploitation.GERANT;
     }
 }

@@ -25,7 +25,8 @@ public class DeclarerVelage {
 
     @Transactional
     public CycleReproduction execute(Command command) {
-        CycleReproduction cycle = repository.findById(command.cycleId())
+        CycleReproduction cycle = repository
+                .findByIdAndTenantIdAndExploitationId(command.cycleId(), command.tenantId(), command.exploitationId())
                 .orElseThrow(() -> new IllegalArgumentException("Cycle de reproduction introuvable."));
 
         cycle.declarerVelage(command.dateReelle(), command.actorId());
@@ -40,7 +41,8 @@ public class DeclarerVelage {
                 saved.getDateReelleVelage(),
                 command.veaux(),
                 saved.getTaureauId(),
-                saved.getCodePaillette()
+                saved.getCodePaillette(),
+                command.actorId()
         ));
 
         if (command.veaux() != null && !command.veaux().isEmpty()) {
@@ -64,6 +66,8 @@ public class DeclarerVelage {
 
     public record Command(
             UUID cycleId,
+            UUID tenantId,
+            UUID exploitationId,
             LocalDate dateReelle,
             List<VelageEnregistreEvent.VeauPayload> veaux,
             UUID actorId

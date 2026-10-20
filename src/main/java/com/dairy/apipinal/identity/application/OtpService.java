@@ -53,40 +53,41 @@ public class OtpService {
         OtpCode otpCode = new OtpCode(telephone, codeHash, expiresAt);
         otpCodeRepository.save(otpCode);
 
-        // AFFICHE LE CODE OTP DANS LE TERMINAL POUR LE DEVELOPPEMENT
-        System.out.println("\n=======================================================");
-        System.out.println("🔔 CODE OTP POUR " + telephone + " : " + code);
-        System.out.println("=======================================================\n");
-
         smsProvider.sendSms(telephone, "Votre code Pinal : " + code);
     }
 
     /**
      * Vérifie un code OTP soumis par l'utilisateur.
+     * La tentative est comptabilisée et persistée même lorsque l'appelant rejette ensuite
+     * l'authentification : les exceptions d'authentification ne provoquent pas de rollback.
      * @return true si le code est valide, false sinon.
-     * @throws IllegalStateException si le code est expiré ou le nombre max de tentatives atteint.
+     * @throws AuthenticationFailedException si aucun code n'est actif ou si le code a expiré.
+     * @throws TooManyAttemptsException si le nombre maximal de tentatives est atteint.
      */
+    @Transactional(noRollbackFor = {AuthenticationFailedException.class, TooManyAttemptsException.class})
     public boolean verify(String telephone, String code) {
         OtpCode otpCode = otpCodeRepository
                 .findFirstByTelephoneAndUsedFalseOrderByCreatedAtDesc(telephone)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Aucun code OTP actif pour ce numéro."
+                .orElseThrow(() -> new AuthenticationFailedException(
+                        "Aucun code actif pour ce numéro. Demandez un nouveau code."
                 ));
 
         if (otpCode.isExpired()) {
-            throw new IllegalStateException("Le code OTP a expiré.");
+            throw new AuthenticationFailedException("Le code a expiré. Demandez un nouveau code.");
         }
 
         if (otpCode.getAttempts() >= maxAttempts) {
-            throw new IllegalStateException(
-                    "Nombre maximum de tentatives atteint. Veuillez demander un nouveau code."
+            throw new TooManyAttemptsException(
+                    "Nombre maximum de tentatives atteint. Demandez un nouveau code."
             );
         }
 
         otpCode.incrementAttempts();
 
         String submittedHash = hash(code);
-        if (submittedHash.equals(otpCode.getCodeHash())) {
+        if (MessageDigest.isEqual(
+                submittedHash.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                otpCode.getCodeHash().getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
             otpCode.markUsed();
             otpCodeRepository.save(otpCode);
             return true;

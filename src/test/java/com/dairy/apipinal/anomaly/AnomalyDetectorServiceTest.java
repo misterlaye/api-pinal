@@ -37,7 +37,7 @@ class AnomalyDetectorServiceTest {
     @Test
     void shouldDetectDropInMilkProduction() {
         // Production aujourd'hui = 10kg, production semaine passée = 600kg (moyenne 100kg/j) -> chute > 20%
-        when(productionQueries.getTotalMilkProductionKg(any(), any()))
+        when(productionQueries.getTotalMilkProductionLitres(any(), any()))
                 .thenReturn(new BigDecimal("10.00"))
                 .thenReturn(new BigDecimal("600.00"));
 
@@ -52,7 +52,7 @@ class AnomalyDetectorServiceTest {
     void anomalyIdentifierIsStableInsideTheSameTenantAndExploitation() {
         when(tenantContext.currentTenantId()).thenReturn(UUID.randomUUID());
         when(tenantContext.currentExploitationId()).thenReturn(UUID.randomUUID());
-        when(productionQueries.getTotalMilkProductionKg(any(), any()))
+        when(productionQueries.getTotalMilkProductionLitres(any(), any()))
                 .thenReturn(new BigDecimal("10.00"), new BigDecimal("600.00"),
                         new BigDecimal("10.00"), new BigDecimal("600.00"));
 
@@ -65,7 +65,7 @@ class AnomalyDetectorServiceTest {
     @Test
     void shouldNotDetectAnomalyWhenProductionIsStable() {
         // Production aujourd'hui = 100kg, semaine passée = 600kg (moyenne 100kg/j)
-        when(productionQueries.getTotalMilkProductionKg(any(), any()))
+        when(productionQueries.getTotalMilkProductionLitres(any(), any()))
                 .thenReturn(new BigDecimal("100.00"))
                 .thenReturn(new BigDecimal("600.00"));
 

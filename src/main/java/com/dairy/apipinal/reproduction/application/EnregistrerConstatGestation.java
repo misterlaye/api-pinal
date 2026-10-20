@@ -19,7 +19,8 @@ public class EnregistrerConstatGestation {
 
     @Transactional
     public CycleReproduction execute(Command command) {
-        CycleReproduction cycle = repository.findById(command.cycleId())
+        CycleReproduction cycle = repository
+                .findByIdAndTenantIdAndExploitationId(command.cycleId(), command.tenantId(), command.exploitationId())
                 .orElseThrow(() -> new IllegalArgumentException("Cycle de reproduction introuvable."));
 
         cycle.enregistrerConstat(
@@ -34,6 +35,8 @@ public class EnregistrerConstatGestation {
 
     public record Command(
             UUID cycleId,
+            UUID tenantId,
+            UUID exploitationId,
             LocalDate dateConstat,
             String resultat,
             String veterinaire,

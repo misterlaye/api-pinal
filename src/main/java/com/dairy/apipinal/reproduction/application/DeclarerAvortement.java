@@ -23,7 +23,8 @@ public class DeclarerAvortement {
 
     @Transactional
     public CycleReproduction execute(Command command) {
-        CycleReproduction cycle = repository.findById(command.cycleId())
+        CycleReproduction cycle = repository
+                .findByIdAndTenantIdAndExploitationId(command.cycleId(), command.tenantId(), command.exploitationId())
                 .orElseThrow(() -> new IllegalArgumentException("Cycle de reproduction introuvable."));
 
         cycle.declarerAvortement(command.actorId());
@@ -35,7 +36,8 @@ public class DeclarerAvortement {
                 saved.getAnimalId(),
                 saved.getTenantId(),
                 saved.getExploitationId(),
-                LocalDate.now() // Date du jour pour l'avortement par défaut
+                LocalDate.now(), // Date du jour pour l'avortement par défaut
+                command.actorId()
         ));
 
         return saved;
@@ -43,6 +45,8 @@ public class DeclarerAvortement {
 
     public record Command(
             UUID cycleId,
+            UUID tenantId,
+            UUID exploitationId,
             UUID actorId
     ) {
     }

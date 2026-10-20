@@ -30,7 +30,7 @@ public class UserController {
     }
 
     @PostMapping("/me")
-    public ResponseEntity<Utilisateur> registerOrUpdateUser(
+    public ResponseEntity<UserResponse> registerOrUpdateUser(
             @Valid @RequestBody RegisterUserRequest request
     ) {
         UUID userId = tenantContext.currentUserId();
@@ -41,14 +41,38 @@ public class UserController {
                 request.prenom(),
                 request.email()
         ));
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(UserResponse.from(user));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Utilisateur> getCurrentUser() {
+    public ResponseEntity<UserResponse> getCurrentUser() {
         UUID userId = tenantContext.currentUserId();
         return utilisateurRepository.findById(userId)
+                .map(UserResponse::from)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Profil exposé à l'utilisateur. N'expose jamais l'empreinte ni l'état du PIN.
+     */
+    public record UserResponse(
+            UUID id,
+            String telephone,
+            String email,
+            String nom,
+            String prenom,
+            String statut
+    ) {
+        static UserResponse from(Utilisateur user) {
+            return new UserResponse(
+                    user.getId(),
+                    user.getTelephone(),
+                    user.getEmail(),
+                    user.getNom(),
+                    user.getPrenom(),
+                    user.getStatut() != null ? user.getStatut().name() : null
+            );
+        }
     }
 }

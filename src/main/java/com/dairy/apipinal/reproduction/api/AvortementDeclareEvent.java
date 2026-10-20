@@ -8,6 +8,7 @@ public record AvortementDeclareEvent(
         UUID animalId,
         UUID tenantId,
         UUID exploitationId,
-        LocalDate dateAvortement
+        LocalDate dateAvortement,
+        UUID actorId
 ) {
 }

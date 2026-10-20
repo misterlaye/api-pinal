@@ -17,6 +17,10 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
 
     private final JdbcTemplate jdbcTemplate;
 
+    /** Événement de vaccination : description saisie par le formulaire (« Vaccination ... »). */
+    private static final String VACCINATION = "es.description ILIKE 'vaccination%'";
+    private static final String NON_VACCINATION = "es.description NOT ILIKE 'vaccination%'";
+
     public HealthDashboardQueriesImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -29,16 +33,25 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
                 "SELECT COUNT(*) FROM evenement_sanitaire es " +
                 "JOIN animal a ON a.id = es.animal_id " +
                 "WHERE es.date_fin IS NULL AND a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF' " +
-                "AND LOWER(es.description) NOT LIKE '%vaccin%'",
+                "AND " + NON_VACCINATION,
                 Integer.class, tenantId, exploitationId);
         if (alertsCount == null) alertsCount = 0;
+
+        // Animaux actifs ayant au moins un signalement ouvert (base du score santé)
+        Integer animauxEnAlerte = jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT es.animal_id) FROM evenement_sanitaire es " +
+                "JOIN animal a ON a.id = es.animal_id " +
+                "WHERE es.date_fin IS NULL AND a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF' " +
+                "AND " + NON_VACCINATION,
+                Integer.class, tenantId, exploitationId);
+        if (animauxEnAlerte == null) animauxEnAlerte = 0;
 
         // 2. Vaccinations à planifier (Rappels dans les 30 prochains jours)
         Integer rappelsCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM evenement_sanitaire es " +
                 "JOIN animal a ON a.id = es.animal_id " +
                 "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF' " +
-                "AND LOWER(es.description) LIKE '%vaccin%' " +
+                "AND " + VACCINATION + " " +
                 "AND es.date_fin IS NOT NULL " +
                 "AND es.date_fin >= CURRENT_DATE " +
                 "AND es.date_fin <= CURRENT_DATE + INTERVAL '30 days'",
@@ -57,7 +70,8 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
         List<java.sql.Date> upcomingDates = jdbcTemplate.queryForList(
                 "SELECT es.date_fin FROM evenement_sanitaire es " +
                 "JOIN animal a ON a.id = es.animal_id " +
-                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND es.date_fin >= CURRENT_DATE " +
+                "WHERE a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF' AND " + VACCINATION + " " +
+                "AND es.date_fin >= CURRENT_DATE " +
                 "ORDER BY es.date_fin ASC LIMIT 1",
                 java.sql.Date.class, tenantId, exploitationId);
         
@@ -74,22 +88,28 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
             nextVisitDesc = "Rappel(s) vaccinal(aux) prévu(s)";
         }
 
+        // Score santé = part des animaux actifs sans signalement ouvert (non calculable sans animal)
+        Integer healthScore = totalAnimals > 0
+                ? (int) Math.round(((totalAnimals - animauxEnAlerte) * 100.0) / totalAnimals)
+                : null;
         HealthDashboardSummary.Kpis kpis = new HealthDashboardSummary.Kpis(
-                alertsCount, alertsCount > 0 ? "Surveillance requise" : "Aucune alerte active",
-                String.valueOf(rappelsCount), "Rappels à planifier (30j)",
+                alertsCount, alertsCount > 0 ? "Signalement(s) ouvert(s) à suivre" : "Aucun signalement ouvert",
+                String.valueOf(rappelsCount), "Rappels de vaccination sous 30 jours",
                 nextVisit, nextVisitDesc,
-                totalAnimals > 0 ? (int)(((totalAnimals - alertsCount) / (double)totalAnimals) * 100) : 100, 
-                alertsCount > 0 ? "Bon état général" : "Troupeau en parfaite santé"
+                healthScore,
+                healthScore == null
+                        ? "Aucun animal actif"
+                        : animauxEnAlerte + " animal(aux) avec un signalement ouvert"
         );
 
         // Alerts list
         List<HealthDashboardSummary.Alert> alerts = jdbcTemplate.query(
                 "SELECT es.id, a.id as animalId, a.nom as animalName, a.identifiant as animalIdentifier, " +
-                "es.description as type, 'RISQUE ÉLEVÉ' as severity, es.date_heure as date, es.diagnostic as message " +
+                "es.description as type, 'OUVERT' as severity, es.date_heure as date, es.diagnostic as message " +
                 "FROM evenement_sanitaire es " +
                 "JOIN animal a ON a.id = es.animal_id " +
-                "WHERE es.date_fin IS NULL AND a.tenant_id = ? AND a.exploitation_id = ? " +
-                "AND LOWER(es.description) NOT LIKE '%vaccin%' " +
+                "WHERE es.date_fin IS NULL AND a.tenant_id = ? AND a.exploitation_id = ? AND a.statut = 'ACTIF' " +
+                "AND " + NON_VACCINATION + " " +
                 "ORDER BY es.date_heure DESC LIMIT 5",
                 (rs, rowNum) -> new HealthDashboardSummary.Alert(
                         UUID.fromString(rs.getString("id")),
@@ -108,9 +128,9 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
         List<HealthDashboardSummary.HistoryEvent> history = jdbcTemplate.query(
                 "SELECT es.id, a.id as animalId, a.nom as animalName, " +
                 "es.date_heure as date, " +
-                "CASE WHEN LOWER(es.description) LIKE '%vaccin%' THEN 'Vaccination' ELSE 'Consultation' END as type, " +
+                "CASE WHEN " + VACCINATION + " THEN 'Vaccination' ELSE 'Consultation' END as type, " +
                 "es.description, " +
-                "CASE WHEN es.date_fin IS NULL AND LOWER(es.description) NOT LIKE '%vaccin%' THEN 'EN COURS' ELSE 'TERMINÉ' END as status " +
+                "CASE WHEN es.date_fin IS NULL AND " + NON_VACCINATION + " THEN 'EN COURS' ELSE 'TERMINÉ' END as status " +
                 "FROM evenement_sanitaire es " +
                 "JOIN animal a ON a.id = es.animal_id " +
                 "WHERE a.tenant_id = ? AND a.exploitation_id = ? " +
@@ -134,7 +154,7 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
                 "FROM evenement_sanitaire es " +
                 "JOIN animal a ON a.id = es.animal_id " +
                 "WHERE a.tenant_id = ? AND a.exploitation_id = ? " +
-                "AND LOWER(es.description) LIKE '%vaccin%' " +
+                "AND " + VACCINATION + " " +
                 "AND es.date_fin >= CURRENT_DATE " +
                 "ORDER BY es.date_fin ASC LIMIT 10",
                 (rs, rowNum) -> {
@@ -152,15 +172,7 @@ public class HealthDashboardQueriesImpl implements HealthDashboardQueries {
                 tenantId, exploitationId
         );
 
-        // Thermal Stress (Dynamic based on month/location)
-        String localite = "Sénégal";
-        try {
-            String dbLoc = jdbcTemplate.queryForObject("SELECT localite FROM exploitation WHERE tenant_id = ? AND id = ?", String.class, tenantId, exploitationId);
-            if (dbLoc != null && !dbLoc.isBlank()) localite = dbLoc;
-        } catch (Exception ignored) {}
 
-        HealthDashboardSummary.ThermalStress thermalStress = null;
-
-        return new HealthDashboardSummary(kpis, alerts, history, vaccinations, thermalStress);
+        return new HealthDashboardSummary(kpis, alerts, history, vaccinations);
     }
 }

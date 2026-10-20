@@ -116,13 +116,16 @@ public class CycleReproduction {
             throw new IllegalStateException("Le constat de gestation n'est possible qu'en statut EN_ATTENTE_CONSTAT.");
         }
 
-        this.constatsGestation.add(new ConstatGestation(date, resultat, veterinaire));
-
-        if ("POSITIF".equalsIgnoreCase(resultat)) {
-            this.statut = StatutReproduction.GESTANTE;
-        } else if ("NEGATIF".equalsIgnoreCase(resultat)) {
-            this.statut = StatutReproduction.VIDE;
+        String resultatNormalise = resultat == null ? "" : resultat.trim().toUpperCase();
+        if (!resultatNormalise.equals("POSITIF") && !resultatNormalise.equals("NEGATIF")) {
+            throw new IllegalArgumentException("Le résultat du constat doit être POSITIF ou NEGATIF.");
         }
+        verifierDateEvenement(date, "du constat");
+
+        this.constatsGestation.add(new ConstatGestation(date, resultatNormalise, veterinaire));
+        this.statut = resultatNormalise.equals("POSITIF")
+                ? StatutReproduction.GESTANTE
+                : StatutReproduction.VIDE;
 
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = actorId;
@@ -132,6 +135,7 @@ public class CycleReproduction {
         if (this.statut != StatutReproduction.GESTANTE) {
             throw new IllegalStateException("Le vêlage ne peut être déclaré que pour une vache gestante.");
         }
+        verifierDateEvenement(dateReelle, "du vêlage");
 
         this.dateReelleVelage = dateReelle;
         this.statut = StatutReproduction.TERMINEE_VELAGE;
@@ -148,6 +152,21 @@ public class CycleReproduction {
         this.statut = StatutReproduction.AVORTEE;
         this.updatedAt = OffsetDateTime.now();
         this.updatedBy = actorId;
+    }
+
+    /**
+     * Un fait reproductif est daté entre l'insémination (incluse) et aujourd'hui.
+     */
+    private void verifierDateEvenement(LocalDate date, String libelle) {
+        if (date == null) {
+            throw new IllegalArgumentException("La date " + libelle + " est obligatoire.");
+        }
+        if (date.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La date " + libelle + " ne peut pas être dans le futur.");
+        }
+        if (this.dateInsemination != null && date.isBefore(this.dateInsemination)) {
+            throw new IllegalArgumentException("La date " + libelle + " ne peut pas précéder l'insémination.");
+        }
     }
 
     public void interrompre(UUID actorId) {

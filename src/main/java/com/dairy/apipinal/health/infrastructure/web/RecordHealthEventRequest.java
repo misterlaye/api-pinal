@@ -13,6 +13,17 @@ public record RecordHealthEventRequest(
 
         @NotBlank
         @Size(max = 2000)
-        String description
+        String description,
+
+        @Size(max = 2000)
+        String diagnostic,
+
+        @Size(max = 2000)
+        String traitement,
+
+        java.time.LocalDate dateFin
 ) {
+    public RecordHealthEventRequest(OffsetDateTime dateHeure, String description) {
+        this(dateHeure, description, null, null, null);
+    }
 }
